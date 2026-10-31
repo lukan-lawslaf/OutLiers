@@ -40,7 +40,7 @@ export interface UndoRequest { expectedRevision: number; actionId: string; lates
 export interface QueryRequest { mode: 'open' | 'discovery'; prompt?: string; operation?: QueryOperation; tableId?: string; columnId?: string }
 export interface QueryResult { answer: string; evidence: EvidenceRef[]; groups?: { label: string; count: number }[]; finding?: Finding; aiStatus: AiStatus }
 export interface AppConfig {
-  authMode: 'local' | 'firebase'; persistence: 'file' | 'firestore'; aiEnabled: boolean;
+  authMode: 'local' | 'session' | 'firebase'; persistence: 'file' | 'postgres' | 'firestore'; aiEnabled: boolean;
   firebaseConfig?: { apiKey: string; authDomain: string; projectId: string; appId: string };
 }
 export interface ApiError { error: { code: string; message: string } }

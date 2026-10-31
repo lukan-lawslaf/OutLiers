@@ -13,6 +13,8 @@ coverage/
 /*.pdf
 /New Text Document.txt
 .DS_Store
+.vercel/
+.deploy/
 motion/**/node_modules/
 motion/**/.hyperframes/
 motion/**/renders/
