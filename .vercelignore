@@ -1,0 +1,12 @@
+/.git/
+/node_modules/
+/.data/
+/.env
+/.env.*
+/tmp/
+/tests/
+/motion/
+/*.pdf
+/New Text Document.txt
+/test-results/
+/playwright-report/
