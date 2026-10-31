@@ -62,7 +62,7 @@ export async function createApp(options: AppOptions = {}): Promise<Express> {
   const persistence = process.env['PERSISTENCE_MODE'] ?? process.env['PERSISTENCE'] ?? 'file';
   const firestoreMode = persistence === 'firestore'; const postgresMode = persistence === 'postgres';
   insist(!cloud || firebaseMode || sessionMode || options.auth, 500, 'AUTH_CONFIGURATION', 'Hosted deployment requires AUTH_MODE=session or firebase.');
-  insist(!cloud || firestoreMode || postgresMode || options.store, 500, 'STORE_CONFIGURATION', 'Hosted deployment requires durable Postgres or Firestore persistence.');
+  insist(!cloud || firestoreMode || postgresMode || options.store || process.env['ALLOW_EPHEMERAL_DEMO'] === 'true', 500, 'STORE_CONFIGURATION', 'Hosted deployment requires durable Postgres or Firestore persistence.');
   if ((firebaseMode || firestoreMode) && !getApps().length) initializeApp({ credential: applicationDefault(), ...(process.env['FIREBASE_PROJECT_ID'] ? { projectId: process.env['FIREBASE_PROJECT_ID'] } : {}) });
   const directory = options.dataDir ?? process.env['DATA_DIR'] ?? path.resolve('.data');
   if (postgresMode && !options.store) insist(process.env['DATABASE_URL'], 500, 'STORE_CONFIGURATION', 'Postgres persistence requires DATABASE_URL.');
