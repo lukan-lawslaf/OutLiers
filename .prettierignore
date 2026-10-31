@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.git/
+.data/
+.vercel/
+.deploy/
+tmp/
+output/
+test-results/
+playwright-report/
+coverage/
+pnpm-lock.yaml
+.env*
+*.pdf
+New Text Document.txt

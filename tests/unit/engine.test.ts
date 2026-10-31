@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Cell, DataRow, DataTable, Investigation } from '../../shared/contracts.js';
-import { duplicateGroups, preview, runQuery } from '../../server/engine.js';
+import { detectCases, duplicateGroups, preview, runQuery } from '../../server/engine.js';
 
 function makeRow(id: string, values: Record<string, Cell>, excluded = false): DataRow {
   return { id, original: { ...values }, values: { ...values }, excluded };
@@ -80,6 +80,31 @@ describe('active-row policy', () => {
       { label: 'Grace Hopper', count: 1 },
     ]);
     expect(grouped.evidence[0]?.rowIds).not.toContain('p4');
+  });
+
+  it('retains one 500-row alias group and one 500-row exact duplicate group', () => {
+    const aliases = makeTable('aliases', 'Aliases', peopleColumns, Array.from({ length: 500 }, (_, index) => makeRow(`a${index}`, {
+      person_id: `P${String(index).padStart(4, '0')}`,
+      name: index % 2 ? 'moss_reed' : 'Moss Reed',
+      team: `team-${index % 10}`,
+    })));
+    const duplicates = makeTable('copies', 'Copies', [
+      { id: 'code', name: 'Code', kind: 'text' },
+      { id: 'kind', name: 'Kind', kind: 'text' },
+    ], Array.from({ length: 500 }, (_, index) => makeRow(`d${index}`, { code: 'DUP', kind: 'same' })));
+    const investigation = makeInvestigation([aliases, duplicates], { identity: { tableId: aliases.id, columnId: 'name' } });
+
+    expect(duplicateGroups(duplicates)).toHaveLength(1);
+    expect(duplicateGroups(duplicates)[0]).toHaveLength(500);
+    const cases = detectCases(investigation);
+    const aliasCase = cases.find((item) => item.kind === 'alias');
+    const duplicateCase = cases.find((item) => item.kind === 'duplicate');
+    expect(aliasCase?.evidence[0]?.rowIds).toHaveLength(500);
+    expect(aliasCase?.action?.type).toBe('canonicalizeAliases');
+    if (aliasCase?.action?.type === 'canonicalizeAliases') expect(aliasCase.action.rowIds).toHaveLength(500);
+    expect(duplicateCase?.evidence[0]?.rowIds).toHaveLength(500);
+    expect(duplicateCase?.action).toMatchObject({ type: 'excludeRows', rowIds: expect.arrayContaining(['d1', 'd499']) });
+    if (duplicateCase?.action?.type === 'excludeRows') expect(duplicateCase.action.rowIds).toHaveLength(499);
   });
 });
 

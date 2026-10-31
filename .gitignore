@@ -21,3 +21,4 @@ motion/**/renders/
 
 .vercel
 .env*
+output/

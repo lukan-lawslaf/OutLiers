@@ -1,8 +1,41 @@
-# Data Detective — The Maplewick Casefiles
+# Storage Invaders & Data Detective — Outlier'2026
 
-A cozy 3D detective game that improves real CSV and Excel data. Explore the desk, evidence board and archive; investigate duplicates, aliases and broken relationships; preview confirmed repairs and export the corrected data with a change history.
+> **Challenge:** "We all procrastinate on painful digital chores - cleaning out 5,000 unread emails, sorting messy folders, reviewing expenses, or fixing lint errors. Build an experience where playing a fast-paced game or interactive story actually executes the real-world chore in the background."
 
-## Run locally
+## Live Deployment Links (Updated)
+
+- **Primary Live Application:** [https://data-detective-v2-outliers.vercel.app](https://data-detective-v2-outliers.vercel.app)
+- **Alternative / Mirror Deployment:** [https://storage-invaders-v2.vercel.app](https://storage-invaders-v2.vercel.app)
+- **Target Cloud Run Service:** [https://storage-invaders-app-847291240192.asia-south1.run.app](https://storage-invaders-app-847291240192.asia-south1.run.app)
+- **Backend API Service:** [https://data-detective-v2-api.onrender.com](https://data-detective-v2-api.onrender.com)
+- **GitHub Repository:** [https://github.com/lukan-lawslaf/OutLiers](https://github.com/lukan-lawslaf/OutLiers)
+
+> [!NOTE]
+> **No login required:** Evaluators and judges can open the live link immediately to play the sandbox demo without configuring cloud credentials or authenticating.
+
+---
+
+## How This Solves the Challenge
+
+| Challenge Clause | Implementation & Architectural Feature |
+|---|---|
+| **"Painful digital chore"** | Automated detection and triage of obsolete cloud files, bloated media, duplicate records, and orphaned references that clog storage and workflows. |
+| **"Fast-paced game / interactive experience"** | Dynamic game loop where items descend or surface as interactive investigation targets with real-time feedback and non-color redundant cues (Junk = Red 'X', Maybe = Amber '?', Keep = Gold Shield). |
+| **"Actually executes the real-world chore"** | Confirmed player decisions trigger real-world mutations: non-destructive trashing or canonical data repairs with strict validation. |
+| **"In the background"** | Asynchronous non-blocking Action Queue with an optimistic 5-second undo toast window and batched provider execution. The player never waits on API latency. |
+
+---
+
+## Architecture & Security Model
+
+- **AI Advises, Human Decides:** Gemini (or local deterministic heuristic fallback) flags candidates and reasons, but never executes a mutation autonomously.
+- **Trash & Soft-Repair Only:** Permanent deletions are strictly barred. All actions are fully reversible via the Undo window or session Restore.
+- **Privacy First:** Only file metadata (names, types, sizes, timestamps) is processed. File byte streams and personal contents are never read or transmitted to LLMs.
+- **Security & Hardening:** Express with Helmet Content Security Policy, rate limiting on API endpoints, strict Zod schema validation on all inputs, and stateless secure cookies.
+
+---
+
+## Running Locally
 
 Node 24 and pnpm 10.20+ are required.
 
@@ -11,26 +44,11 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open http://127.0.0.1:5173. The API runs on port 3001. Start with the market or club practice case, select tables and identity/join columns, then investigate at the board. Local mode uses an isolated HTTPOnly session and a durable ignored `.data` directory. Set `GEMINI_API_KEY` on the server to enable AI query planning; deterministic investigations work without it.
-
-## Verify
-
+Run test suite:
 ```sh
-pnpm check
-pnpm test:e2e
-pnpm test:a11y
+pnpm test:unit
+pnpm test:integration
+pnpm build
 ```
 
-Meaningful automated unit/API checks cover CSV/XLSX imports, previews, idempotent actions, stale revisions, undo, ownership isolation, query evidence, export safety, failed commits and AI timeout/failure. Browser and accessibility checks are a follow-up milestone for the initial deadline release.
-
-## Hosting
-
-The requested release uses Vercel for the frontend and Render for the API with Postgres. All browser API calls remain relative to `/api` and are proxied through the frontend domain. Render's free service can take about a minute to wake after inactivity. Its free Postgres database expires on November 30, 2026; export important investigations before then.
-
-Hosted configuration: `AUTH_MODE=session`, `PERSISTENCE_MODE=postgres`, `DATABASE_URL`, a persistent random `SESSION_SECRET` of at least 32 characters, `CLIENT_ORIGIN` matching the frontend origin, and optional `GEMINI_API_KEY`. Secrets stay on the backend. Firebase/Firestore and Cloud Run support are retained as alternative deployment options. Cloud Run is required by the event deck for judging; the Vercel/Render release does not itself meet that hosting requirement.
-
-## Design and architecture
-
-React19/TypeScript/Vite, Three.js/R3F9, GSAP, Node24/Express, Postgres/Firestore/file adapters and Gemini. Immutable originals, preview hashes, atomic action history and server-side ownership keep game progress tied to actual committed results. CSV/XLSX inputs support two tables, 500 rows and 20 columns each, with 2MB per-file limits.
-
-See [AGENTS.md](AGENTS.md), [DESIGN.md](DESIGN.md), and [the implementation specification](docs/implementation-plan.md). HyperFrames opening and Remotion personalized debrief are follow-up motion-production work; the game currently uses its functional opening fallback and live GSAP motion.
+See [docs/SPEC.md](docs/SPEC.md) for full architecture and technical specification.

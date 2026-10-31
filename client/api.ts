@@ -1,6 +1,6 @@
-import { getApps, initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously } from 'firebase/auth';
 import type { AppConfig, CreateInvestigationRequest, ImportResult, Investigation, PreviewRequest, PreviewResponse, QueryRequest, QueryResult, ResolveRequest, ResolveResponse, UndoRequest } from '../shared/contracts';
+
+export type ExportFormat = 'csv' | 'xlsx' | 'report';
 
 export class RequestError extends Error {
   constructor(message: string, public code = 'REQUEST_FAILED', public status = 0) { super(message); this.name = 'RequestError'; }
@@ -28,10 +28,10 @@ export function connect(): Promise<AppConfig> {
   configPromise ??= request<AppConfig>('/config').then(async (config) => {
     if (config.authMode === 'firebase') {
       if (!config.firebaseConfig) throw new RequestError('Cloud authentication is not configured.');
-      const app = getApps()[0] ?? initializeApp(config.firebaseConfig);
-      const auth = getAuth(app);
-      if (!auth.currentUser) await signInAnonymously(auth);
-      token = async () => auth.currentUser?.getIdToken();
+      const { connectFirebase } = await import('./auth/firebase');
+      token = await connectFirebase(config.firebaseConfig);
+    } else {
+      token = undefined;
     }
     return config;
   }).catch((error: unknown) => { configPromise = undefined; throw error; });
@@ -49,7 +49,7 @@ export const api = {
   undo: (id: string, body: UndoRequest) => post<ResolveResponse>(`/investigations/${encodeURIComponent(id)}/undo`, body),
   query: (id: string, body: QueryRequest) => post<QueryResult>(`/investigations/${encodeURIComponent(id)}/query`, body),
   saveFinding: (id: string, findingId: string) => post<Investigation>(`/investigations/${encodeURIComponent(id)}/findings`, { findingId }),
-  async export(id: string, format: 'csv' | 'xlsx' | 'report', tableId?: string) {
+  async export(id: string, format: ExportFormat, tableId?: string) {
     const headers = new Headers();
     const authToken = await token?.();
     if (authToken) headers.set('Authorization', `Bearer ${authToken}`);

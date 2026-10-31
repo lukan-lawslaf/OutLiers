@@ -18,19 +18,25 @@ export function tableOf(inv: Investigation, id: string): DataTable {
 function evidence(table: DataTable, rows: DataRow[], columnIds: string[], explanation: string): EvidenceRef {
   return { tableId: table.id, rowIds: rows.map(row => row.id), columnIds, explanation };
 }
+function appendGroup<T>(groups: Map<string, T[]>, key: string, value: T): void {
+  const group = groups.get(key);
+  if (group) group.push(value);
+  else groups.set(key, [value]);
+}
 export function duplicateGroups(table: DataTable): DataRow[][] {
   const groups = new Map<string, DataRow[]>();
   for (const row of active(table)) {
     const key = canonical(table.columns.map(column => row.values[column.id] ?? null));
-    groups.set(key, [...(groups.get(key) ?? []), row]);
+    appendGroup(groups, key, row);
   }
   return [...groups.values()].filter(rows => rows.length > 1);
 }
 export function detectCases(inv: Investigation): CaseFile[] {
   const cases: CaseFile[] = [];
+  const previousCases = new Map(inv.cases.map(item => [item.id, item]));
   const add = (item: Omit<CaseFile, 'id' | 'status' | 'basedOnRevision'>) => {
     const id = `case_${hash({ kind: item.kind, evidence: item.evidence, action: item.action }).slice(0, 20)}`;
-    const old = inv.cases.find(oldCase => oldCase.id === id);
+    const old = previousCases.get(id);
     cases.push({ ...item, id, status: old?.status === 'kept' || old?.status === 'deferred' ? old.status : 'open', basedOnRevision: inv.revision });
   };
   for (const table of inv.tables) for (const rows of duplicateGroups(table)) {
@@ -39,25 +45,29 @@ export function detectCases(inv: Investigation): CaseFile[] {
   if (inv.identity) {
     const table = tableOf(inv, inv.identity.tableId); const column = inv.identity.columnId;
     const groups = new Map<string, DataRow[]>();
-    for (const row of active(table)) { const key = aliasKey(row.values[column] ?? null); if (key) groups.set(key, [...(groups.get(key) ?? []), row]); }
+    for (const row of active(table)) { const key = aliasKey(row.values[column] ?? null); if (key) appendGroup(groups, key, row); }
     for (const rows of groups.values()) {
       const variants = [...new Set(rows.map(row => String(row.values[column] ?? '')))];
       if (variants.length < 2) continue;
       const selected = variants.find(value => value.trim() === value && /[A-Z]/.test(value)) ?? variants[0]!;
-      add({ kind: 'alias', title: `One identity, ${variants.length} spellings?`, description: `Review these similar identity labels before choosing a common spelling. Similar spelling is evidence for review, not proof of identity.`, evidence: [evidence(table, rows, [column], `${variants.length} distinct labels differ only by case, spacing or separators.`)], action: { type: 'canonicalizeAliases', tableId: table.id, columnId: column, rowIds: rows.map(row => row.id), value: selected }, alternatives: variants.map(value => ({ type: 'canonicalizeAliases', tableId: table.id, columnId: column, rowIds: rows.map(row => row.id), value })) });
+      const rowIds = rows.map(row => row.id);
+      add({ kind: 'alias', title: `One identity, ${variants.length} spellings?`, description: `Review these similar identity labels before choosing a common spelling. Similar spelling is evidence for review, not proof of identity.`, evidence: [evidence(table, rows, [column], `${variants.length} distinct labels differ only by case, spacing or separators.`)], action: { type: 'canonicalizeAliases', tableId: table.id, columnId: column, rowIds, value: selected }, alternatives: variants.map(value => ({ type: 'canonicalizeAliases', tableId: table.id, columnId: column, rowIds, value })) });
     }
   }
   if (inv.join) {
     const join = inv.join; const parent = tableOf(inv, join.parentTableId); const child = tableOf(inv, join.childTableId);
     const parents = new Map<string, DataRow[]>();
-    for (const row of active(parent)) { const key = valueKey(row.values[join.parentColumnId] ?? null); parents.set(key, [...(parents.get(key) ?? []), row]); }
+    for (const row of active(parent)) { const key = valueKey(row.values[join.parentColumnId] ?? null); appendGroup(parents, key, row); }
+    const targets = [...parents.values()].filter(items => items.length === 1).map(items => items[0]!.values[join.parentColumnId] ?? null).filter(value => value !== null && value !== '');
+    const normalizedTargets = new Map<string, Cell[]>();
+    for (const target of targets) appendGroup(normalizedTargets, aliasKey(target), target);
     const broken = new Map<string, DataRow[]>();
-    for (const row of active(child)) { const value = row.values[join.childColumnId] ?? null; if (value !== null && value !== '' && parents.get(valueKey(value))?.length === 1) continue; const key = valueKey(value); broken.set(key, [...(broken.get(key) ?? []), row]); }
+    for (const row of active(child)) { const value = row.values[join.childColumnId] ?? null; if (value !== null && value !== '' && parents.get(valueKey(value))?.length === 1) continue; appendGroup(broken, valueKey(value), row); }
     for (const rows of broken.values()) {
       const current = rows[0]!.values[join.childColumnId] ?? null;
-      const targets = [...parents.values()].filter(items => items.length === 1).map(items => items[0]!.values[join.parentColumnId] ?? null).filter(value => value !== null && value !== '');
-      const suggestions = targets.filter(value => aliasKey(value) === aliasKey(current));
-      const alternatives: DataAction[] = (suggestions.length ? suggestions : targets.slice(0, 20)).map(value => ({ type: 'repairLinks', tableId: child.id, columnId: join.childColumnId, rowIds: rows.map(row => row.id), value }));
+      const suggestions = normalizedTargets.get(aliasKey(current)) ?? [];
+      const rowIds = rows.map(row => row.id);
+      const alternatives: DataAction[] = (suggestions.length ? suggestions : targets.slice(0, 20)).map(value => ({ type: 'repairLinks', tableId: child.id, columnId: join.childColumnId, rowIds, value }));
       add({ kind: 'relationship', title: 'A reference needs a destination', description: `These child records have a missing or ambiguous parent reference. Choose a verified destination or keep/defer the case.`, evidence: [evidence(child, rows, [join.childColumnId], `The stored reference has no unique active match in ${parent.name}.`)], ...(suggestions.length === 1 ? { action: alternatives[0] } : {}), alternatives });
     }
   }
@@ -67,8 +77,18 @@ export function detectCases(inv: Investigation): CaseFile[] {
 }
 export function refresh(inv: Investigation): Investigation {
   inv.cases = detectCases(inv);
-  const rows = inv.tables.flatMap(table => table.rows);
-  inv.stats = { totalRows: rows.length, activeRows: rows.filter(row => !row.excluded).length, changedRows: rows.filter(row => row.excluded || canonical(row.original) !== canonical(row.values)).length, openCases: inv.cases.filter(item => item.status === 'open').length, resolvedCases: inv.cases.filter(item => item.status === 'resolved' || item.status === 'kept').length, savedFindings: inv.findings.length };
+  const stats = { totalRows: 0, activeRows: 0, changedRows: 0, openCases: 0, resolvedCases: 0, savedFindings: inv.findings.length };
+  for (const table of inv.tables) for (const row of table.rows) {
+    stats.totalRows++;
+    if (!row.excluded) stats.activeRows++;
+    const keys = Object.keys(row.original);
+    if (row.excluded || keys.length !== Object.keys(row.values).length || keys.some(key => row.original[key] !== row.values[key])) stats.changedRows++;
+  }
+  for (const item of inv.cases) {
+    if (item.status === 'open') stats.openCases++;
+    if (item.status === 'resolved' || item.status === 'kept') stats.resolvedCases++;
+  }
+  inv.stats = stats;
   return inv;
 }
 export function preview(inv: Investigation, action: DataAction): PreviewResponse {
@@ -78,7 +98,8 @@ export function preview(inv: Investigation, action: DataAction): PreviewResponse
   } else {
     const table = tableOf(inv, action.tableId);
     insist(action.rowIds.length > 0 && new Set(action.rowIds).size === action.rowIds.length, 400, 'INVALID_ROWS', 'Choose at least one unique row.');
-    const rows = action.rowIds.map(id => { const row = table.rows.find(item => item.id === id); insist(row && !row.excluded, 400, 'INVALID_ROWS', 'Every selected row must exist and be active.'); return row; });
+    const rowsById = new Map(table.rows.map(row => [row.id, row]));
+    const rows = action.rowIds.map(id => { const row = rowsById.get(id); insist(row && !row.excluded, 400, 'INVALID_ROWS', 'Every selected row must exist and be active.'); return row; });
     if (action.type === 'excludeRows') for (const row of rows) changes.push({ tableId: table.id, rowId: row.id, kind: 'excluded', before: row.excluded, after: true });
     else {
       insist(table.columns.some(column => column.id === action.columnId), 400, 'INVALID_COLUMN', 'Choose an existing column.');
@@ -95,7 +116,12 @@ export function preview(inv: Investigation, action: DataAction): PreviewResponse
   return { revision: inv.revision, action, effectHash: hash({ revision: inv.revision, action, changes }), changes, summary: action.type === 'reviewCase' ? `Mark this case ${action.outcome === 'keep' ? 'kept' : 'deferred'}.` : `${changes.length} confirmed record change${changes.length === 1 ? '' : 's'}.`, warnings: [] };
 }
 export function applyChanges(inv: Investigation, changes: Change[], inverse = false): void {
-  for (const change of changes) { const row = tableOf(inv, change.tableId).rows.find(item => item.id === change.rowId); insist(row, 409, 'INVALID_HISTORY', 'The saved history no longer matches this table.'); const value = inverse ? change.before : change.after; if (change.kind === 'excluded') row.excluded = value === true; else row.values[change.columnId!] = value; }
+  const rowsByTable = new Map<string, Map<string, DataRow>>();
+  for (const change of changes) {
+    let rows = rowsByTable.get(change.tableId);
+    if (!rows) { rows = new Map(tableOf(inv, change.tableId).rows.map(row => [row.id, row])); rowsByTable.set(change.tableId, rows); }
+    const row = rows.get(change.rowId); insist(row, 409, 'INVALID_HISTORY', 'The saved history no longer matches this table.'); const value = inverse ? change.before : change.after; if (change.kind === 'excluded') row.excluded = value === true; else row.values[change.columnId!] = value;
+  }
 }
 export function runQuery(inv: Investigation, request: QueryRequest): QueryResult {
   const table = request.tableId ? tableOf(inv, request.tableId) : inv.tables[0]!;
@@ -109,10 +135,11 @@ export function runQuery(inv: Investigation, request: QueryRequest): QueryResult
     answer = `${table.name} has ${rows.length} active records and ${table.columns.length} columns. ${blanks.length} active records have a blank value in ${table.columns.find(column => column.id === columnId)!.name}.`;
     refs = [evidence(table, blanks.length ? blanks : rows, [columnId], 'Computed directly from active records.')];
   } else if (operation === 'group_count') {
+    const rows = active(table);
     const map = new Map<string, { label: string; count: number }>();
-    for (const row of active(table)) { const value = row.values[columnId] ?? null; const key = valueKey(value); const entry = map.get(key) ?? { label: value === null ? '(blank)' : String(value), count: 0 }; entry.count++; map.set(key, entry); }
+    for (const row of rows) { const value = row.values[columnId] ?? null; const key = valueKey(value); const entry = map.get(key) ?? { label: value === null ? '(blank)' : String(value), count: 0 }; entry.count++; map.set(key, entry); }
     groups = [...map.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
-    answer = `${groups.length} groups across ${active(table).length} active records.`; refs = [evidence(table, active(table), [columnId], 'Groups use exact stored values; excluded records are omitted.')];
+    answer = `${groups.length} groups across ${rows.length} active records.`; refs = [evidence(table, rows, [columnId], 'Groups use exact stored values; excluded records are omitted.')];
   } else if (operation === 'find_duplicates') {
     const duplicates = duplicateGroups(table); answer = `${duplicates.length} exact duplicate group${duplicates.length === 1 ? '' : 's'}; ${duplicates.reduce((sum, rows) => sum + rows.length - 1, 0)} extra active copies.`;
     refs = duplicates.map(rows => evidence(table, rows, table.columns.map(column => column.id), 'All stored column values match.'));
