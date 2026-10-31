@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Check, Leaf, X } from 'lucide-react';
 import type { Mode, Station } from '../shared/contracts';
 import EmptyStation from './components/EmptyStation';
+import DossierIdentity from './components/DossierIdentity';
 import Intro from './components/Intro';
 import PreviewDialog from './components/PreviewDialog';
 import { Spinner } from './components/feedback';
@@ -20,6 +21,10 @@ export default function App() {
   const [mode, setMode] = useState<Mode>('guided');
   const [selectedCaseId, setSelectedCaseId] = useState('');
   const [archiveTable, setArchiveTable] = useState('');
+  const inspectCase = useCallback((id: string) => {
+    setSelectedCaseId(id);
+    setMode('guided');
+  }, []);
   const preferences = useOfficePreferences();
   const feedback = useCaseFeedback(preferences.sound);
   const openBoard = useCallback(() => {
@@ -38,6 +43,10 @@ export default function App() {
     },
     [clearError],
   );
+
+  useEffect(() => {
+    document.getElementById('case-panel')?.scrollTo({ top: 0, behavior: 'auto' });
+  }, [station, investigation?.id, imported?.id]);
 
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
@@ -84,6 +93,8 @@ export default function App() {
           flat={flat}
           opening={showIntro}
           onNavigate={navigate}
+          selectedCaseId={selectedCaseId}
+          onSelectCase={inspectCase}
         />
         <section
           id="case-panel"
@@ -95,6 +106,7 @@ export default function App() {
             <span>MAPLEWICK RECORDS AGENCY</span>
             <span>{stationInfo[station].chapter}</span>
           </div>
+          <DossierIdentity investigation={investigation} />
           {error && !pending ? (
             <div className="error-message" role="alert">
               <span>{error}</span>

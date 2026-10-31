@@ -11,12 +11,12 @@ export default function OfficeIllustration() {
             <circle cx="3" cy="5" r="1" fill="#9C704C" />
           </pattern>
         </defs>
-        <path d="M85 130 415 70 690 205v355L365 660 85 480Z" fill="#D5CDB5" />
+        <path d="M85 130 415 70 690 205v355L365 660 85 480Z" fill="#233D34" />
         <path d="m85 480 330-95 275 175-325 100Z" fill="url(#boards)" />
-        <path d="M415 70v315L85 480V130Z" fill="#E3D9C0" />
-        <path d="m415 70 275 135v355L415 385Z" fill="#CEC8AF" />
+        <path d="M415 70v315L85 480V130Z" fill="#2D493D" />
+        <path d="m415 70 275 135v355L415 385Z" fill="#233D34" />
         <path d="m131 188 152-30v185l-152 42Z" fill="#72573E" />
-        <path d="m142 197 131-26v163l-131 36Z" fill="#B7CEBD" />
+        <path d="m142 197 131-26v163l-131 36Z" fill="#36504A" />
         <path d="m208 184 1 166m-65-80 130-31" stroke="#F4EBD5" strokeWidth="9" />
         <path d="m448 165 177 85v141l-177-88Z" fill="#775235" />
         <path d="m459 182 155 74v117l-155-76Z" fill="url(#cork)" />

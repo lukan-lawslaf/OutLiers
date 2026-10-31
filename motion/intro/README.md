@@ -2,7 +2,7 @@
 
 An eight-second, silent HyperFrames composition at 1280×720 and 30 fps, following the palette, typography, and motion in the repository's `DESIGN.md`.
 
-The three scenes show an envelope arriving, loose records gathering into a case file with a connecting thread, and the Data Detective title. The paper transitions are crossfades. All animation is deterministic and seekable through one paused GSAP timeline.
+The three scenes show a lamplit intake dossier stamped CASE OPEN, numbered clues pinned to a cork evidence board, and the Data Detective title beside a magnified case file. Dark pine shadows, brass, paper and red thread follow `DESIGN.md`. The paper transitions are crossfades. All animation is deterministic and seekable through one paused GSAP timeline.
 
 From the repository root:
 

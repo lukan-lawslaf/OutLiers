@@ -110,34 +110,24 @@ export default function DeskStation({
         <span /> OR OPEN A PRACTICE CASE <span />
       </div>
       <div className="demo-cases">
-        <button
-          className="demo-card"
-          disabled={!ready || busy}
-          onClick={() => onDemo('market')}
-          aria-label="Open Maplewick Market"
-        >
+        <button className="demo-card" disabled={!ready || busy} onClick={() => onDemo('market')}>
           <span className="demo-drawing market" aria-hidden="true">
             ✿
           </span>
           <span>
             <small>CASE NO. 001</small>
-            <strong>The corner market</strong>
+            <strong>Open Maplewick Market</strong>
             <span>Customers, orders & familiar names</span>
           </span>
           <ArrowRight size={18} />
         </button>
-        <button
-          className="demo-card"
-          disabled={!ready || busy}
-          onClick={() => onDemo('club')}
-          aria-label="Open community club"
-        >
+        <button className="demo-card" disabled={!ready || busy} onClick={() => onDemo('club')}>
           <span className="demo-drawing club" aria-hidden="true">
             <Leaf size={28} strokeWidth={1.3} />
           </span>
           <span>
             <small>CASE NO. 002</small>
-            <strong>The community club</strong>
+            <strong>Open community club</strong>
             <span>Members, sign-ups & loose ends</span>
           </span>
           <ArrowRight size={18} />

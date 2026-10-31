@@ -112,6 +112,7 @@ export default function BoardStation({
                   investigation={investigation}
                   busy={busy}
                   onPreview={onPreview}
+                  clueNumber={investigation.cases.indexOf(activeCase) + 1}
                 />
               ) : null}
             </>

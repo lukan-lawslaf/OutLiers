@@ -30,11 +30,13 @@ export default function CaseInspector({
   investigation,
   busy,
   onPreview,
+  clueNumber = 1,
 }: {
   file: CaseFile;
   investigation: Investigation;
   busy: boolean;
   onPreview: (action: DataAction, caseId?: string) => void;
+  clueNumber?: number;
 }) {
   const options = [file.action, ...(file.alternatives ?? [])].filter(
     (action): action is DataAction => !!action,
@@ -63,6 +65,10 @@ export default function CaseInspector({
   const Icon = kindInfo[file.kind].icon;
   return (
     <article className="case-inspector">
+      <div className="clue-ticket">
+        <span>CLUE</span>
+        <strong>{String(clueNumber).padStart(2, '0')}</strong>
+      </div>
       <div className="clue-meta">
         <span>
           <Icon size={14} /> {kindInfo[file.kind].label}

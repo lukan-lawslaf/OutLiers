@@ -31,13 +31,13 @@ export default function AppHeader({
           <Search size={25} strokeWidth={1.6} />
         </span>
         <span>
-          <strong>Maplewick</strong>
-          <small>RECORDS AGENCY</small>
+          <strong>Data Detective</strong>
+          <small>MAPLEWICK RECORDS AGENCY</small>
         </span>
       </a>
       <div className="masthead-center">
         <span className="edition-line" />
-        <span>THE DATA DETECTIVE CASEFILES</span>
+        <span>THE MAPLEWICK CASEFILES</span>
         <span className="edition-line" />
       </div>
       <div className="header-tools">

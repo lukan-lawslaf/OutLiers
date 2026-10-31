@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { Leaf, Paperclip } from 'lucide-react';
+import { ArrowUpRight, Leaf, Paperclip, Search } from 'lucide-react';
 import type { Investigation, Station } from '../../shared/contracts';
 import OfficeIllustration from '../components/OfficeIllustration';
+import ClueBoard from '../features/board/ClueBoard';
 
 const Office = lazy(() => import('../components/Office'));
 
@@ -32,6 +33,8 @@ interface OfficeStageProps {
   flat: boolean;
   opening: boolean;
   onNavigate: (station: Station) => void;
+  selectedCaseId: string;
+  onSelectCase: (id: string) => void;
 }
 
 export default function OfficeStage({
@@ -41,6 +44,8 @@ export default function OfficeStage({
   flat,
   opening,
   onNavigate,
+  selectedCaseId,
+  onSelectCase,
 }: OfficeStageProps) {
   const { ref, visible } = useOfficeVisibility();
   const [loaded, setLoaded] = useState(false);
@@ -49,38 +54,66 @@ export default function OfficeStage({
   }, [flat, opening, visible]);
 
   return (
-    <section className="office-stage" aria-label="Maplewick office">
+    <section className={`office-stage office-stage-${station}`} aria-label="Maplewick office">
+      <div className="office-lamplight" aria-hidden="true" />
       <div className="office-title">
-        <span className="eyebrow">Welcome to your little corner of clarity</span>
+        <span className="eyebrow">
+          <span className="agency-status-dot" /> THE MAPLEWICK CASEFILES / AFTER HOURS
+        </span>
         <h1>
           {station === 'desk' ? (
             <>
-              Good records.
+              Every record.
               <br />
-              <em>Great stories.</em>
+              <em>A possible lead.</em>
             </>
           ) : station === 'board' ? (
             <>
-              A loose thread.
+              Follow the thread.
               <br />
-              <em>A clearer picture.</em>
+              <em>Find the story.</em>
             </>
           ) : (
             <>
-              Carefully solved.
+              Every lead.
               <br />
-              <em>Safely filed.</em>
+              <em>Carefully filed.</em>
             </>
           )}
         </h1>
         <p>
           {station === 'desk'
-            ? 'Put the kettle on. There’s a case waiting for you.'
+            ? 'A repeated name. A missing link. Something worth a closer look.'
             : station === 'board'
               ? 'Look closely. Every clue comes from your records.'
-              : 'Every decision has a story. Here’s yours.'}
+              : 'Every decision, discovery, and repaired record. Carefully accounted for.'}
         </p>
       </div>
+      {station === 'board' && investigation ? (
+        <ClueBoard
+          investigation={investigation}
+          selectedCaseId={selectedCaseId}
+          onSelect={(id) => {
+            onSelectCase(id);
+            if (window.matchMedia('(max-width: 850px)').matches) {
+              document
+                .getElementById('case-panel')
+                ?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+            }
+          }}
+        />
+      ) : null}
+      {station === 'desk' ? (
+        <div className="investigator-note">
+          <Search size={19} strokeWidth={1.4} />
+          <span>
+            Look for what
+            <br />
+            <em>doesn’t quite fit.</em>
+          </span>
+          <span className="note-pencil" aria-hidden="true" />
+        </div>
+      ) : null}
       <div className="scene-container" ref={ref}>
         {loaded && !flat ? (
           <Suspense
@@ -109,7 +142,7 @@ export default function OfficeStage({
         <span>
           MAPLEWICK, SOMEWHERE QUIET
           <br />
-          <small>Afternoon light. A fresh perspective.</small>
+          <small>Lamplight. Loose ends. Your next lead.</small>
         </span>
       </div>
       {investigation ? (
@@ -119,6 +152,20 @@ export default function OfficeStage({
           <span className="case-tag-revision">rev. {investigation.revision}</span>
         </div>
       ) : null}
+      <div className="room-navigation" role="group" aria-label="Explore the office">
+        <button onClick={() => onNavigate('desk')} className={station === 'desk' ? 'active' : ''}>
+          <span>01</span> The desk <ArrowUpRight size={12} />
+        </button>
+        <button onClick={() => onNavigate('board')} className={station === 'board' ? 'active' : ''}>
+          <span>02</span> Evidence wall <ArrowUpRight size={12} />
+        </button>
+        <button
+          onClick={() => onNavigate('archive')}
+          className={station === 'archive' ? 'active' : ''}
+        >
+          <span>03</span> The archive <ArrowUpRight size={12} />
+        </button>
+      </div>
     </section>
   );
 }

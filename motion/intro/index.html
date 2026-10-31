@@ -461,6 +461,331 @@
         margin-top: 33px;
         transform-origin: left;
       }
+      /* A lamp-lit desk frames each case. Paper remains the readable surface. */
+      .scene {
+        background: radial-gradient(
+          ellipse at 72% 36%,
+          #e5ba72 0%,
+          #815735 39%,
+          #233d34 75%,
+          #172823 100%
+        );
+      }
+      .scene-content {
+        position: relative;
+        width: calc(100% - 66px);
+        height: calc(100% - 58px);
+        margin: 29px 33px;
+        padding: 48px 72px;
+        background: #f3ebdd;
+        box-shadow:
+          0 11px 5px #24180f35,
+          0 25px 30px #21160d80;
+        overflow: hidden;
+      }
+      .scene-content::before {
+        content: '';
+        position: absolute;
+        inset: 12px;
+        border: 1px solid #c6b695;
+        pointer-events: none;
+      }
+      .scene-content::after {
+        content: 'MAPLEWICK  /  CASE FILE 001';
+        position: absolute;
+        right: 65px;
+        bottom: 40px;
+        color: #756952;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        pointer-events: none;
+      }
+      .border {
+        inset: 39px 45px;
+        border-color: #bba78880;
+      }
+      .border::after {
+        display: none;
+      }
+      .grain {
+        opacity: 0.1;
+      }
+      .window-light {
+        z-index: 1;
+        opacity: 0.18;
+      }
+      .scene-content > * {
+        position: relative;
+        z-index: 2;
+      }
+      .running-head {
+        color: #624d39;
+      }
+      .eyebrow {
+        color: #172823;
+      }
+      .running-head::after {
+        background: #a98b68;
+      }
+      .folio {
+        color: #5a4634;
+      }
+      .case-stamp {
+        position: absolute !important;
+        z-index: 5 !important;
+        top: 92px;
+        right: 87px;
+        border: 4px double #a44838;
+        color: #8e3729;
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: 0.17em;
+        padding: 10px 16px;
+        transform: rotate(8deg);
+      }
+      .paperclip {
+        position: absolute !important;
+        z-index: 6 !important;
+        top: 7px;
+        left: 115px;
+        width: 24px;
+        height: 72px;
+        border: 5px solid #a89d83;
+        border-bottom: 0;
+        border-radius: 18px 18px 0 0;
+        transform: rotate(-9deg);
+        box-shadow: 3px 2px 4px #24180f30;
+      }
+      .envelope-stage::before {
+        content: 'EVIDENCE RECEIVED';
+        position: absolute;
+        right: 5px;
+        bottom: 17px;
+        border: 2px solid #a44838;
+        color: #8e3729;
+        padding: 7px 12px;
+        font-size: 15px;
+        letter-spacing: 0.1em;
+        transform: rotate(-11deg);
+      }
+      .envelope {
+        box-shadow:
+          14px 19px 0 #54381927,
+          2px 9px 18px #432c1b55;
+      }
+      #gather .scene-content {
+        background: #b89167;
+      }
+      #gather .scene-content::before {
+        border-color: #7d5a39;
+      }
+      #gather .running-head,
+      #gather .folio {
+        color: #30241b;
+      }
+      #gather .running-head::after {
+        background: #60442e;
+      }
+      #gather .story {
+        background: #fff9ee;
+        padding: 27px 31px;
+        transform: rotate(1deg);
+        box-shadow: 7px 9px 0 #69492e50;
+      }
+      #gather .story::after {
+        content: 'PINNED NOTE';
+        position: absolute;
+        top: -18px;
+        right: 25px;
+        background: #a44838;
+        color: #fff9ee;
+        padding: 6px 10px;
+        font-size: 12px;
+        letter-spacing: 0.12em;
+      }
+      #gather .folder-back {
+        background: #8f7149;
+        border-color: #664826;
+      }
+      #gather .folder-back::before {
+        background: #8f7149;
+        border-color: #664826;
+      }
+      #gather .record {
+        box-shadow: 6px 8px 4px #50361d66;
+      }
+      #gather .record h3 {
+        color: #392f26;
+      }
+      .evidence-label {
+        position: absolute;
+        z-index: 5;
+        left: 30px;
+        bottom: -20px;
+        background: #e9ddc7;
+        padding: 5px 11px;
+        color: #34291e;
+        font-size: 15px;
+        letter-spacing: 0.12em;
+        font-weight: 600;
+        transform: rotate(-2deg);
+      }
+      .fingerprint {
+        position: absolute !important;
+        z-index: 6 !important;
+        right: 4px;
+        top: 0;
+        width: 92px;
+        height: 120px;
+        border: 3px solid #6e5334;
+        border-radius: 46% 46% 42% 42%;
+        transform: rotate(14deg);
+        opacity: 0.45;
+        box-shadow:
+          inset 0 0 0 5px #b89167,
+          inset 0 0 0 8px #6e5334,
+          inset 0 0 0 14px #b89167,
+          inset 0 0 0 17px #6e5334,
+          inset 0 0 0 23px #b89167,
+          inset 0 0 0 26px #6e5334;
+      }
+      .magnifier {
+        position: absolute !important;
+        z-index: 7 !important;
+        width: 135px;
+        height: 135px;
+        border: 12px solid #b67a32;
+        border-radius: 50%;
+        box-shadow:
+          0 0 0 3px #493527,
+          inset 0 0 0 3px #493527,
+          9px 12px 11px #39291e77;
+        transform: rotate(-32deg);
+      }
+      .magnifier::after {
+        content: '';
+        position: absolute;
+        width: 27px;
+        height: 117px;
+        left: 90px;
+        top: 101px;
+        border-radius: 8px;
+        background: #493527;
+        border: 4px solid #b67a32;
+        transform: rotate(-11deg);
+        transform-origin: top;
+      }
+      #gather .magnifier {
+        left: 345px;
+        top: 219px;
+      }
+      #title-scene .scene-content {
+        background: #e9ddc7;
+      }
+      #title-scene .spread {
+        gap: 8px;
+      }
+      #title-scene .title-story {
+        z-index: 4;
+      }
+      #title-scene .film-title {
+        font-size: 88px;
+        color: #2f3f2b;
+      }
+      #title-scene .casefiles {
+        color: #493527;
+      }
+      #title-scene .tagline {
+        color: #493527;
+      }
+      #title-scene .closing-rule {
+        background: #a44838;
+      }
+      .title-dossier {
+        position: relative;
+        width: 310px;
+        height: 355px;
+        flex: 0 0 310px;
+        transform: rotate(8deg);
+      }
+      .dossier-back {
+        position: absolute;
+        inset: 35px 8px 15px 18px;
+        background: #d4b98e;
+        border: 2px solid #8e6a40;
+        box-shadow: 9px 12px 0 #5a3d2355;
+      }
+      .dossier-paper {
+        position: absolute;
+        inset: 8px 31px 37px 0;
+        padding: 31px 24px;
+        background: #fff9ee;
+        border: 1px solid #b79d78;
+        box-shadow: 4px 6px 9px #46301e55;
+      }
+      .dossier-paper strong {
+        font-size: 20px;
+        letter-spacing: 0.12em;
+        color: #4e6444;
+      }
+      .dossier-paper .rule {
+        height: 2px;
+        background: #8a7456;
+        margin: 22px 0;
+      }
+      .dossier-paper .short {
+        width: 56%;
+      }
+      .dossier-paper .clue {
+        font-family: 'Fraunces', Georgia, serif;
+        font-size: 42px;
+        color: #a44838;
+      }
+      .dossier-paper .tiny {
+        font-size: 15px;
+        letter-spacing: 0.1em;
+        color: #625749;
+      }
+      .dossier-thread {
+        position: absolute;
+        z-index: 4;
+        width: 120px;
+        height: 3px;
+        top: 179px;
+        left: 87px;
+        background: #a44838;
+        transform: rotate(-17deg);
+        transform-origin: left;
+      }
+      .dossier-pin {
+        position: absolute;
+        z-index: 5;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        top: 166px;
+        left: 85px;
+        background: #a44838;
+        box-shadow: 2px 3px 0 #49352766;
+      }
+      .dossier-pin.second {
+        left: 201px;
+        top: 130px;
+      }
+      .title-dossier .magnifier {
+        left: 218px;
+        top: 211px;
+        transform: rotate(-34deg) scale(0.57);
+        transform-origin: top left;
+      }
+      #title-scene .case-stamp {
+        top: auto;
+        right: auto;
+        left: 90px;
+        bottom: 93px;
+        transform: rotate(-9deg);
+      }
     </style>
   </head>
   <body>
@@ -476,6 +801,8 @@
       <div id="arrival" class="scene">
         <div class="window-light" data-layout-ignore></div>
         <div class="scene-content">
+          <div class="paperclip" data-layout-ignore></div>
+          <div class="case-stamp">CASE OPEN</div>
           <div class="running-head arrival-head">MAPLEWICK RECORDS AGENCY</div>
           <div class="spread">
             <div class="story">
@@ -503,7 +830,7 @@
               </svg>
             </div>
           </div>
-          <div class="folio arrival-folio">A LITTLE ORDER. A LITTLE WONDER.</div>
+          <div class="folio arrival-folio">UNSORTED RECORDS / INTAKE 001</div>
         </div>
         <div class="border" data-layout-ignore></div>
         <div class="grain" data-layout-ignore></div>
@@ -511,21 +838,21 @@
       <div id="gather" class="scene">
         <div class="window-light" data-layout-ignore></div>
         <div class="scene-content">
-          <div class="running-head gather-head">THE DETAILS MAKE THE DIFFERENCE</div>
+          <div class="running-head gather-head">EVIDENCE BOARD / CONNECT THE CLUES</div>
           <div class="spread">
             <div class="case-art" data-layout-allow-overflow>
               <div class="folder-back"></div>
               <div class="record record-a">
-                <h3>THE DETAILS</h3>
+                <h3>CLUE 01 / RECORD</h3>
                 <div class="line"></div>
                 <div class="line short"></div>
-                <div class="record-mark">a</div>
+                <div class="record-mark">01</div>
               </div>
               <div class="record record-b">
-                <h3>THE CONNECTIONS</h3>
+                <h3>CLUE 02 / LINK</h3>
                 <div class="line"></div>
                 <div class="line short"></div>
-                <div class="record-mark">b</div>
+                <div class="record-mark">02</div>
               </div>
               <div class="thread"></div>
               <div class="pin pin-a"></div>
@@ -534,14 +861,17 @@
                 <div class="folder-seal">M</div>
                 <div class="folder-label">MAPLEWICK<br /><strong>Case files</strong></div>
               </div>
+              <div class="fingerprint" data-layout-ignore></div>
+              <div class="magnifier" data-layout-ignore></div>
+              <div class="evidence-label">DUPLICATE · ALIAS · BROKEN LINK</div>
             </div>
             <div class="story">
-              <div class="eyebrow gather-eyebrow">With care & curiosity</div>
-              <h2 class="gather-title">Help the pieces find their place.</h2>
+              <div class="eyebrow gather-eyebrow">Clue 01 / a common thread</div>
+              <h2 class="gather-title">Every clue changes the picture.</h2>
               <div class="fine-rule gather-rule"></div>
             </div>
           </div>
-          <div class="folio gather-folio">FOLLOW A THREAD. SEE A CLEARER PICTURE.</div>
+          <div class="folio gather-folio">FOLLOW THE THREAD. VERIFY THE EVIDENCE.</div>
         </div>
         <div class="border" data-layout-ignore></div>
         <div class="grain" data-layout-ignore></div>
@@ -549,21 +879,31 @@
       <div id="title-scene" class="scene">
         <div class="window-light" data-layout-ignore></div>
         <div class="scene-content">
-          <div class="running-head title-head">A QUIETER KIND OF DETECTIVE GAME</div>
+          <div class="running-head title-head">MAPLEWICK RECORDS AGENCY / CASE FILE 001</div>
           <div class="spread">
             <div class="title-story">
-              <div class="eyebrow title-eyebrow">Welcome to the agency</div>
+              <div class="eyebrow title-eyebrow">Your investigation begins</div>
               <h1 class="film-title">Data Detective</h1>
               <div class="casefiles">The Maplewick Casefiles</div>
               <div class="closing-rule"></div>
-              <p class="tagline">A little order. A little wonder.</p>
+              <p class="tagline">Inspect. Connect. Restore.</p>
             </div>
-            <div class="agency-mark">
-              <div class="agency-mark-inner">
-                <span class="monogram">M</span><span class="mark-label">MAPLEWICK</span>
+            <div class="title-dossier" data-layout-allow-overflow>
+              <div class="dossier-back"></div>
+              <div class="dossier-paper">
+                <strong>EVIDENCE / 001</strong>
+                <div class="rule"></div>
+                <div class="tiny">RECORD A ↔ RECORD B</div>
+                <div class="rule short"></div>
+                <div class="clue">A pattern<br />emerges.</div>
               </div>
+              <div class="dossier-thread"></div>
+              <div class="dossier-pin"></div>
+              <div class="dossier-pin second"></div>
+              <div class="magnifier" data-layout-ignore></div>
             </div>
           </div>
+          <div class="case-stamp">CASE OPEN</div>
           <div class="folio title-folio">EVERY RECORD HAS A STORY.</div>
         </div>
         <div class="border" data-layout-ignore></div>
@@ -591,6 +931,11 @@
       tl.from('.envelope-label', { opacity: 0, duration: 0.3, ease: 'sine.out' }, 0.92);
       tl.from('.leaf-sprig', { rotation: 10, opacity: 0, duration: 0.75, ease: 'power1.out' }, 0.5);
       tl.from('.arrival-folio', { opacity: 0, y: 9, duration: 0.35, ease: 'power3.out' }, 0.65);
+      tl.from(
+        '#arrival .case-stamp',
+        { opacity: 0, scale: 1.45, rotation: 22, duration: 0.38, ease: 'back.out(1.1)' },
+        1.35,
+      );
       tl.to('#arrival .window-light', { x: -28, duration: 2.65, ease: 'none' }, 0.1);
       // Crossfade containers; the outgoing scene stays intact through the handoff.
       tl.to('#arrival', { opacity: 0, duration: 0.55, ease: 'sine.inOut' }, 2.18);
@@ -618,6 +963,16 @@
       tl.from('.pin-a', { scale: 0, duration: 0.2, ease: 'back.out(1.2)' }, 3.37);
       tl.from('.thread', { scaleX: 0, duration: 0.4, ease: 'power2.inOut' }, 3.49);
       tl.from('.pin-b', { scale: 0, duration: 0.2, ease: 'back.out(1.2)' }, 3.83);
+      tl.from(
+        '#gather .magnifier',
+        { opacity: 0, x: 70, y: 55, rotation: 8, duration: 0.65, ease: 'power2.out' },
+        3.65,
+      );
+      tl.from(
+        '#gather .fingerprint',
+        { opacity: 0, scale: 0.8, duration: 0.45, ease: 'sine.out' },
+        3.32,
+      );
       tl.from('.gather-folio', { opacity: 0, y: 10, duration: 0.4, ease: 'sine.out' }, 2.86);
       tl.to('#gather .window-light', { x: -25, duration: 2.7, ease: 'none' }, 2.25);
       tl.to('#gather', { opacity: 0, duration: 0.6, ease: 'sine.inOut' }, 4.72);
@@ -631,9 +986,20 @@
       );
       tl.from('.casefiles', { opacity: 0, x: -16, duration: 0.45, ease: 'power1.out' }, 5.45);
       tl.from(
-        '.agency-mark',
-        { opacity: 0, scale: 0.88, rotation: -16, duration: 0.65, ease: 'back.out(1.1)' },
+        '.title-dossier',
+        { opacity: 0, x: 85, y: -60, rotation: 21, duration: 0.7, ease: 'power3.out' },
         5.32,
+      );
+      tl.from('.dossier-thread', { scaleX: 0, duration: 0.4, ease: 'power2.inOut' }, 6.02);
+      tl.from(
+        '#title-scene .magnifier',
+        { opacity: 0, x: 70, y: 55, duration: 0.5, ease: 'power2.out' },
+        6.26,
+      );
+      tl.from(
+        '#title-scene .case-stamp',
+        { opacity: 0, scale: 1.4, rotation: -20, duration: 0.35, ease: 'back.out(1.2)' },
+        6.59,
       );
       tl.from('.closing-rule', { scaleX: 0, duration: 0.4, ease: 'power2.out' }, 5.67);
       tl.from('.tagline', { opacity: 0, y: 14, duration: 0.5, ease: 'sine.out' }, 5.78);

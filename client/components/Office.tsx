@@ -1,13 +1,15 @@
 import OfficeIllustration from './OfficeIllustration';
-import { Component, useRef, type ReactNode } from 'react';
+import { Component, memo, useRef, type ReactNode } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import {
   BoxGeometry,
+  CircleGeometry,
   CylinderGeometry,
   MeshStandardMaterial,
   SphereGeometry,
+  TorusGeometry,
   Vector3,
   type Vector3Tuple,
 } from 'three';
@@ -17,6 +19,19 @@ gsap.registerPlugin(useGSAP);
 const cube = new BoxGeometry(1, 1, 1);
 const cylinder = new CylinderGeometry(1, 1, 1, 16);
 const sphere = new SphereGeometry(1, 12, 8);
+const ring = new TorusGeometry(1, 0.13, 6, 32);
+const lens = new CircleGeometry(1, 24);
+const lensMaterial = new MeshStandardMaterial({
+  color: '#D8E2D0',
+  transparent: true,
+  opacity: 0.22,
+  roughness: 0.16,
+});
+const lampMaterial = new MeshStandardMaterial({
+  color: '#E5BA72',
+  emissive: '#E5BA72',
+  emissiveIntensity: 0.9,
+});
 const palette = new Map<string, MeshStandardMaterial>();
 function material(color: string) {
   let value = palette.get(color);
@@ -141,9 +156,17 @@ function Thread({ a, b }: { a: [number, number]; b: [number, number] }) {
 function Room({ onNavigate }: { onNavigate: (station: Station) => void }) {
   return (
     <group dispose={null}>
-      <ambientLight intensity={1.9} color="#FFF1D5" />
-      <directionalLight position={[-3, 8, 6]} intensity={3} color="#FFF3D4" />
-      <directionalLight position={[6, 5, -2]} intensity={1.1} color="#D5DEC9" />
+      <ambientLight intensity={0.55} color="#E5BA72" />
+      <hemisphereLight args={['#C7D1B7', '#172823', 1.1]} />
+      <directionalLight position={[-3, 8, 6]} intensity={2.1} color="#E5BA72" />
+      <directionalLight position={[6, 5, -2]} intensity={0.9} color="#8AAB9A" />
+      <pointLight
+        position={[-1.97, 2, 0.23]}
+        intensity={9}
+        distance={5.5}
+        decay={2}
+        color="#E5BA72"
+      />
       <Box p={[0, -0.16, 0]} s={[7.2, 0.3, 6.2]} color="#674A34" />
       {Array.from({ length: 12 }, (_, i) => (
         <Box
@@ -153,15 +176,15 @@ function Room({ onNavigate }: { onNavigate: (station: Station) => void }) {
           color={i % 3 === 0 ? '#B28B60' : i % 2 === 0 ? '#C49C6B' : '#BD9566'}
         />
       ))}
-      <Box p={[0, 1.9, -3]} s={[7.2, 3.9, 0.16]} color="#D1CAB0" />
-      <Box p={[-3.5, 1.9, 0]} s={[0.16, 3.9, 6]} color="#E2D8BF" />
+      <Box p={[0, 1.9, -3]} s={[7.2, 3.9, 0.16]} color="#233D34" />
+      <Box p={[-3.5, 1.9, 0]} s={[0.16, 3.9, 6]} color="#2D493D" />
       <Box p={[0, 0.18, -2.86]} s={[7, 0.25, 0.12]} color="#73573D" />
       <Box p={[-3.36, 0.18, 0]} s={[0.12, 0.25, 6]} color="#73573D" />
       {/* Window and its quiet afternoon light. */}
       <group position={[-3.37, 2.32, -0.7]} rotation={[0, Math.PI / 2, 0]}>
         <Box p={[0, 0, 0]} s={[2.1, 2.05, 0.12]} color="#70543A" />
-        <Box p={[0, 0, 0.08]} s={[1.85, 1.8, 0.08]} color="#B7CEBD" />
-        <Box p={[0, -0.42, 0.13]} s={[1.85, 0.9, 0.02]} color="#A5BBA0" />
+        <Box p={[0, 0, 0.08]} s={[1.85, 1.8, 0.08]} color="#36504A" />
+        <Box p={[0, -0.42, 0.13]} s={[1.85, 0.9, 0.02]} color="#172823" />
         <Box p={[0, 0, 0.17]} s={[0.08, 1.9, 0.08]} color="#F3EBDD" />
         <Box p={[0, 0, 0.17]} s={[1.9, 0.08, 0.08]} color="#F3EBDD" />
         <Box p={[0, -1.05, 0.14]} s={[2.3, 0.12, 0.35]} color="#E9DBC1" />
@@ -193,16 +216,30 @@ function Room({ onNavigate }: { onNavigate: (station: Station) => void }) {
           color="#B67A32"
         />
         <Box p={[-1.15, 1.41, 0.8]} s={[1.05, 0.03, 0.68]} color="#4E6444" />
-        <Box p={[-1.1, 1.44, 0.7]} s={[0.66, 0.015, 0.52]} r={[0, 0.1, 0]} color="#FFF6E4" />
+        <Box p={[-1.1, 1.44, 0.7]} s={[0.88, 0.015, 0.68]} r={[0, 0.1, 0]} color="#FFF9EE" />
+        <Box p={[-1.43, 1.455, 0.72]} s={[0.045, 0.014, 0.58]} r={[0, 0.1, 0]} color="#A44838" />
         <Box p={[-1.1, 1.46, 0.68]} s={[0.42, 0.01, 0.016]} r={[0, 0.1, 0]} color="#B2A58C" />
         <Box p={[-1.1, 1.46, 0.78]} s={[0.42, 0.01, 0.016]} r={[0, 0.1, 0]} color="#B2A58C" />
         <Box p={[-1.1, 1.46, 0.88]} s={[0.3, 0.01, 0.016]} r={[0, 0.1, 0]} color="#B2A58C" />
         <Round p={[-1.97, 1.45, 0.23]} s={[0.23, 0.09, 0.23]} color="#AF7B3C" />
         <Round p={[-1.97, 1.78, 0.23]} s={[0.035, 0.64, 0.035]} color="#A8783A" />
         <Round p={[-1.97, 2.1, 0.23]} s={[0.4, 0.2, 0.4]} color="#466441" />
+        <mesh
+          geometry={cylinder}
+          material={lampMaterial}
+          position={[-1.97, 1.995, 0.23]}
+          scale={[0.3, 0.023, 0.3]}
+        />
         <Round p={[-0.18, 1.54, 0.31]} s={[0.105, 0.27, 0.105]} color="#F2E9D4" />
         <Round p={[-0.18, 1.68, 0.31]} s={[0.083, 0.009, 0.083]} color="#58402A" />
         <Box p={[-0.1, 1.42, 1.02]} s={[0.5, 0.06, 0.36]} r={[0, -0.12, 0]} color="#A44838" />
+        <Round p={[-0.1, 1.56, 1.02]} s={[0.07, 0.18, 0.07]} color="#493527" />
+        <group position={[-1.17, 1.48, 0.82]} rotation={[-Math.PI / 2, 0, -0.5]}>
+          <mesh geometry={ring} material={material('#B67A32')} scale={0.22} />
+          <mesh geometry={lens} material={lensMaterial} scale={0.205} />
+          <Box p={[0, -0.4, 0]} s={[0.075, 0.42, 0.07]} color="#493527" />
+          <Box p={[0, -0.24, 0]} s={[0.09, 0.1, 0.075]} color="#B67A32" />
+        </group>
       </group>
       <Plant x={0.38} z={0.19} small />
       {/* Chair. */}
@@ -297,7 +334,7 @@ class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean
   }
 }
 
-export default function Office({
+function Office({
   station,
   reduced,
   active,
@@ -324,3 +361,5 @@ export default function Office({
     </SceneBoundary>
   );
 }
+
+export default memo(Office);
