@@ -72,4 +72,3 @@ pnpm deploy:cloudrun
 - Main reviewer stages explicit project paths, reviews changes and pushes tested milestones. Never force-push, overwrite unrelated changes, or commit credentials, local input PDFs/notes, node_modules, build caches or runtime data.
 - Each milestone reports concrete behavior, validation and remaining limitations. Attach any created PR to this chat.
 - Completion requires the import-to-export flow, meaningful data/security tests, browser/accessibility checks, reviewed deployment setup and an accurate README. A generated build alone does not prove end-to-end functionality.
-

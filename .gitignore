@@ -1,0 +1,18 @@
+node_modules/
+dist/
+.data/
+.env
+.env.*
+!.env.example
+tmp/
+test-results/
+playwright-report/
+coverage/
+*.tsbuildinfo
+*.log
+/*.pdf
+/New Text Document.txt
+.DS_Store
+motion/**/node_modules/
+motion/**/.hyperframes/
+motion/**/renders/

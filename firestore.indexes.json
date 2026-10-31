@@ -1,0 +1,9 @@
+{
+  "indexes": [],
+  "fieldOverrides": [
+    { "collectionGroup": "rows", "fieldPath": "values", "indexes": [] },
+    { "collectionGroup": "rows", "fieldPath": "original", "indexes": [] },
+    { "collectionGroup": "actions", "fieldPath": "changes", "indexes": [] },
+    { "collectionGroup": "actions", "fieldPath": "inverse", "indexes": [] }
+  ]
+}

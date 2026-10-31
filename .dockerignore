@@ -1,0 +1,13 @@
+.git
+node_modules
+dist
+.data
+.env
+.env.*
+tmp
+tests
+test-results
+playwright-report
+*.pdf
+New Text Document.txt
+motion
