@@ -19,7 +19,7 @@ Run `pnpm check` for formatting, lint, type checking, unit and integration tests
 
 ## Deployment and data
 
-The current public application is [data-detective-outliers.vercel.app](https://data-detective-outliers.vercel.app), with its API on Render. The free Render service may take a minute to wake from inactivity. As of October 31, 2026, the live backend uses **ephemeral file storage**: investigations can disappear on restart or idle shutdown. PostgreSQL support is present, but switching storage requires a planned migration or explicit acceptance that existing sessions cannot be recovered. The provisioned free database expires on November 30, 2026.
+The current public application is [data-detective-outliers.vercel.app](https://data-detective-outliers.vercel.app), with its API on Render. The free Render service may take a minute to wake from inactivity. The backend uses PostgreSQL so investigations persist across service restarts. The provisioned free database expires on November 30, 2026; migrate or upgrade it before then to retain its data. The original temporary file-backed data was discarded during the approved switch.
 
 The server keeps Gemini credentials private. When AI is enabled, selected dataset context may be sent to Gemini to answer investigation questions; do not upload data you are not authorized to share. AI output is validated and does not apply repairs on its own.
 
