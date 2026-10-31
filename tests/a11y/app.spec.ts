@@ -5,11 +5,18 @@ async function expectNoSevereViolations(page: Page) {
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();
-  const severe = results.violations.filter((violation) => violation.impact === 'critical' || violation.impact === 'serious');
-  expect(severe, severe.map((violation) => `${violation.id}: ${violation.help}`).join('\n')).toEqual([]);
+  const severe = results.violations.filter(
+    (violation) => violation.impact === 'critical' || violation.impact === 'serious',
+  );
+  expect(
+    severe,
+    severe.map((violation) => `${violation.id}: ${violation.help}`).join('\n'),
+  ).toEqual([]);
 }
 
-test('keeps the desk, evidence board, and change preview usable by keyboard and free of severe axe violations', async ({ page }) => {
+test('keeps the desk, evidence board, and change preview usable by keyboard and free of severe axe violations', async ({
+  page,
+}) => {
   await page.addInitScript(() => {
     localStorage.setItem('maplewick.intro.v1', 'seen');
     localStorage.setItem('maplewick.motion.v1', 'reduced');
@@ -20,7 +27,10 @@ test('keeps the desk, evidence board, and change preview usable by keyboard and 
   await expectNoSevereViolations(page);
 
   await page.keyboard.press('2');
-  await expect(page.getByRole('button', { name: 'Evidence board' })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('button', { name: 'Evidence board' })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
   await page.getByRole('button', { name: 'Desk' }).click();
   await page.getByRole('button', { name: 'Open Maplewick Market' }).click();
   await page.getByRole('button', { name: 'Begin investigation' }).click();

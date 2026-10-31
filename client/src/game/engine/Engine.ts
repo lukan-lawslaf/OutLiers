@@ -68,7 +68,10 @@ export class GameEngine {
     };
   }
 
-  public loadWave(filesWithAnalysis: Array<{ file: FileMeta; analysis: Analysis }>, waveNumber = 1): void {
+  public loadWave(
+    filesWithAnalysis: Array<{ file: FileMeta; analysis: Analysis }>,
+    waveNumber = 1,
+  ): void {
     this.wave = waveNumber;
     this.queueToSpawn = [...filesWithAnalysis];
     this.asteroids = [];

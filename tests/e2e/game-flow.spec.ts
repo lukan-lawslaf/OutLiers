@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 
-test('completes a repair preview, confirms it, then undoes it from the archive', async ({ page }) => {
+test('completes a repair preview, confirms it, then undoes it from the archive', async ({
+  page,
+}) => {
   await page.addInitScript(() => {
     localStorage.setItem('maplewick.intro.v1', 'seen');
     localStorage.setItem('maplewick.motion.v1', 'reduced');
@@ -15,7 +17,9 @@ test('completes a repair preview, confirms it, then undoes it from the archive',
 
   await page.getByRole('button', { name: 'Preview repair' }).click();
   const preview = page.getByRole('dialog', { name: 'Review this change.' });
-  await expect(preview.getByText('This is a preview. Your records have not changed.')).toBeVisible();
+  await expect(
+    preview.getByText('This is a preview. Your records have not changed.'),
+  ).toBeVisible();
   await expect(preview.getByRole('region', { name: 'Proposed changes' })).toBeVisible();
   await preview.getByRole('button', { name: 'Confirm change' }).click();
   await expect(preview).toBeHidden();
@@ -30,7 +34,9 @@ test('completes a repair preview, confirms it, then undoes it from the archive',
   await expect(page.getByRole('button', { name: 'Download Excel workbook' })).toBeEnabled();
 });
 
-test('runs bounded Open and Discovery queries and saves an evidence-backed finding', async ({ page }) => {
+test('runs bounded Open and Discovery queries and saves an evidence-backed finding', async ({
+  page,
+}) => {
   await page.addInitScript(() => {
     localStorage.setItem('maplewick.intro.v1', 'seen');
     localStorage.setItem('maplewick.motion.v1', 'reduced');

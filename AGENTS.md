@@ -14,11 +14,11 @@ Build a cozy detective game that turns user-confirmed investigations into real d
 
 ## Agent ownership
 
-| Role | Configuration | Owned paths |
-| --- | --- | --- |
-| Frontend | gpt-6.1-sol, xhigh | `client/`, `public/game/`, `public/media/`, `motion/` |
-| Backend | gpt-6.1-sol, high | `server/` |
-| Testing | gpt-6-luna, max | `tests/` |
+| Role          | Configuration                                    | Owned paths                                                                            |
+| ------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| Frontend      | gpt-6.1-sol, xhigh                               | `client/`, `public/game/`, `public/media/`, `motion/`                                  |
+| Backend       | gpt-6.1-sol, high                                | `server/`                                                                              |
+| Testing       | gpt-6-luna, max                                  | `tests/`                                                                               |
 | Main reviewer | current parent chat; requested gpt-6.1-sol, high | shared contracts, root configuration, dependencies/lockfile, docs, integration, GitHub |
 
 Only the main reviewer edits root configs, package manifests, lockfiles or shared contracts and creates commits, branches or pushes. Ask the parent for a contract/dependency change; do not independently change another agent's files. Agents share a checkout. Preserve other agents' edits and existing user PDFs and notes.

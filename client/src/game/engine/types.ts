@@ -53,7 +53,8 @@ export interface ShipEntity {
   maxCombo: number;
 }
 
-export type GameStatus = 'idle' | 'running' | 'paused' | 'confirm_keep' | 'wave_cleared' | 'game_over';
+export type GameStatus =
+  'idle' | 'running' | 'paused' | 'confirm_keep' | 'wave_cleared' | 'game_over';
 
 export interface EngineConfig {
   width: number;

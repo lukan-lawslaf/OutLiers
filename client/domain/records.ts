@@ -20,7 +20,10 @@ export function latestUndoableAction(history: HistoryEntry[]): HistoryEntry | un
 }
 
 /** A repair can only point to a nonblank key occurring once among active parents. */
-export function unambiguousParentValues(table: DataTable | undefined, columnId: string | undefined): Cell[] {
+export function unambiguousParentValues(
+  table: DataTable | undefined,
+  columnId: string | undefined,
+): Cell[] {
   if (!table || !columnId) return [];
   const counts = new Map<string, { value: Cell; count: number }>();
   for (const row of table.rows) {

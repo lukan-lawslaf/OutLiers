@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { AppConfig, CreateInvestigationRequest, DataAction, ImportResult, Investigation, PreviewResponse, QueryRequest, QueryResult } from '../../shared/contracts';
+import type {
+  AppConfig,
+  CreateInvestigationRequest,
+  DataAction,
+  ImportResult,
+  Investigation,
+  PreviewResponse,
+  QueryRequest,
+  QueryResult,
+} from '../../shared/contracts';
 import { api, connect, RequestError, type ExportFormat } from '../api';
 import { latestUndoableAction, validateUpload } from '../domain/records';
 import { storageGet, storageKeys, storageSet } from '../utils/storage';
@@ -71,66 +80,88 @@ export function useInvestigation({ onOpen, onNotice }: InvestigationEvents) {
       }
     }
     void restore();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [commit, onOpen]);
 
-  const run = useCallback(async (label: string, work: () => Promise<void>) => {
-    // A ref closes the gap before React renders the disabled controls.
-    if (inFlight.current) return;
-    inFlight.current = true;
-    setBusy(label);
-    setError('');
-    try {
-      await work();
-    } catch (reason) {
-      if (reason instanceof RequestError && reason.status === 409 && current.current) {
-        try {
-          commit(await api.get(current.current.id));
-          setPending(null);
-          setError('The case changed since this preview. The evidence has been refreshed; please review it again.');
-        } catch {
+  const run = useCallback(
+    async (label: string, work: () => Promise<void>) => {
+      // A ref closes the gap before React renders the disabled controls.
+      if (inFlight.current) return;
+      inFlight.current = true;
+      setBusy(label);
+      setError('');
+      try {
+        await work();
+      } catch (reason) {
+        if (reason instanceof RequestError && reason.status === 409 && current.current) {
+          try {
+            commit(await api.get(current.current.id));
+            setPending(null);
+            setError(
+              'The case changed since this preview. The evidence has been refreshed; please review it again.',
+            );
+          } catch {
+            setError(errorText(reason));
+          }
+        } else {
           setError(errorText(reason));
         }
-      } else {
-        setError(errorText(reason));
+      } finally {
+        inFlight.current = false;
+        setBusy('');
       }
-    } finally {
-      inFlight.current = false;
-      setBusy('');
-    }
-  }, [commit]);
+    },
+    [commit],
+  );
 
-  const importFiles = useCallback((files: File[]) => {
-    if (!files.length || inFlight.current) return;
-    const problem = validateUpload(files);
-    if (problem) { setError(problem); return; }
-    void run('Reading your records', async () => setImported(await api.import(files)));
-  }, [run]);
+  const importFiles = useCallback(
+    (files: File[]) => {
+      if (!files.length || inFlight.current) return;
+      const problem = validateUpload(files);
+      if (problem) {
+        setError(problem);
+        return;
+      }
+      void run('Reading your records', async () => setImported(await api.import(files)));
+    },
+    [run],
+  );
 
-  const openDemo = useCallback((name: 'market' | 'club') => {
-    void run(`Opening the ${name === 'market' ? 'market' : 'club'} records`, async () => {
-      setImported(await api.demo(name));
-    });
-  }, [run]);
+  const openDemo = useCallback(
+    (name: 'market' | 'club') => {
+      void run(`Opening the ${name === 'market' ? 'market' : 'club'} records`, async () => {
+        setImported(await api.demo(name));
+      });
+    },
+    [run],
+  );
 
-  const create = useCallback((body: CreateInvestigationRequest) => {
-    void run('Preparing your case', async () => {
-      commit(await api.create(body));
-      setImported(null);
-      setPending(null);
-      onOpen();
-      onNotice('Your case is open. Let’s follow the first thread.');
-    });
-  }, [commit, onNotice, onOpen, run]);
+  const create = useCallback(
+    (body: CreateInvestigationRequest) => {
+      void run('Preparing your case', async () => {
+        commit(await api.create(body));
+        setImported(null);
+        setPending(null);
+        onOpen();
+        onNotice('Your case is open. Let’s follow the first thread.');
+      });
+    },
+    [commit, onNotice, onOpen, run],
+  );
 
-  const preview = useCallback((action: DataAction, caseId?: string) => {
-    const active = current.current;
-    if (!active) return;
-    void run('Preparing your preview', async () => {
-      const data = await api.preview(active.id, { expectedRevision: active.revision, action });
-      setPending({ data, caseId, actionId: crypto.randomUUID() });
-    });
-  }, [run]);
+  const preview = useCallback(
+    (action: DataAction, caseId?: string) => {
+      const active = current.current;
+      if (!active) return;
+      void run('Preparing your preview', async () => {
+        const data = await api.preview(active.id, { expectedRevision: active.revision, action });
+        setPending({ data, caseId, actionId: crypto.randomUUID() });
+      });
+    },
+    [run],
+  );
 
   const confirm = useCallback(() => {
     const active = current.current;
@@ -145,9 +176,11 @@ export function useInvestigation({ onOpen, onNotice }: InvestigationEvents) {
       });
       commit(response.investigation);
       setPending(null);
-      onNotice(pending.data.action.type === 'reviewCase'
-        ? 'Decision filed. A thoughtful choice.'
-        : 'A little clearer. Your repair is saved.');
+      onNotice(
+        pending.data.action.type === 'reviewCase'
+          ? 'Decision filed. A thoughtful choice.'
+          : 'A little clearer. Your repair is saved.',
+      );
     });
   }, [commit, onNotice, pending, run]);
 
@@ -170,41 +203,70 @@ export function useInvestigation({ onOpen, onNotice }: InvestigationEvents) {
     });
   }, [commit, onNotice, run]);
 
-  const query = useCallback((body: QueryRequest) => {
-    const active = current.current;
-    if (!active) return;
-    void run('Following your question', async () => setQueryResult(await api.query(active.id, body)));
-  }, [run]);
+  const query = useCallback(
+    (body: QueryRequest) => {
+      const active = current.current;
+      if (!active) return;
+      void run('Following your question', async () =>
+        setQueryResult(await api.query(active.id, body)),
+      );
+    },
+    [run],
+  );
 
-  const saveFinding = useCallback((id: string) => {
-    const active = current.current;
-    if (!active) return;
-    void run('Filing your finding', async () => {
-      commit(await api.saveFinding(active.id, id), false);
-      onNotice('A new finding, safely pinned to your case.');
-    });
-  }, [commit, onNotice, run]);
+  const saveFinding = useCallback(
+    (id: string) => {
+      const active = current.current;
+      if (!active) return;
+      void run('Filing your finding', async () => {
+        commit(await api.saveFinding(active.id, id), false);
+        onNotice('A new finding, safely pinned to your case.');
+      });
+    },
+    [commit, onNotice, run],
+  );
 
-  const exportRecords = useCallback((format: ExportFormat, tableId?: string) => {
-    const active = current.current;
-    if (!active) return;
-    const label = { csv: 'CSV', xlsx: 'workbook', report: 'report' }[format];
-    void run(`Preparing your ${label}`, async () => {
-      await api.export(active.id, format, tableId);
-      if (format === 'xlsx') onNotice('Your workbook is ready to take home.');
-    });
-  }, [onNotice, run]);
+  const exportRecords = useCallback(
+    (format: ExportFormat, tableId?: string) => {
+      const active = current.current;
+      if (!active) return;
+      const label = { csv: 'CSV', xlsx: 'workbook', report: 'report' }[format];
+      void run(`Preparing your ${label}`, async () => {
+        await api.export(active.id, format, tableId);
+        if (format === 'xlsx') onNotice('Your workbook is ready to take home.');
+      });
+    },
+    [onNotice, run],
+  );
 
   const reconnect = useCallback(() => {
     void run('Reconnecting', async () => setConfig(await connect()));
   }, [run]);
 
   return {
-    config, booting, investigation, imported, pending, queryResult, busy, error,
-    importFiles, openDemo, create, preview, confirm, undo, query, saveFinding, exportRecords,
+    config,
+    booting,
+    investigation,
+    imported,
+    pending,
+    queryResult,
+    busy,
+    error,
+    importFiles,
+    openDemo,
+    create,
+    preview,
+    confirm,
+    undo,
+    query,
+    saveFinding,
+    exportRecords,
     reconnect,
     clearError: useCallback(() => setError(''), []),
     discardImport: useCallback(() => setImported(null), []),
-    closePreview: useCallback(() => { setPending(null); setError(''); }, []),
+    closePreview: useCallback(() => {
+      setPending(null);
+      setError('');
+    }, []),
   };
 }

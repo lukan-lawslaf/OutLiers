@@ -2,7 +2,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import type { Request } from 'express';
 import { parse as parseCsv } from 'csv-parse/sync';
-import type { CaseFile, Change, ImportResult, Investigation, PreviewResponse, QueryResult, ResolveResponse } from '../../shared/contracts.js';
+import type {
+  CaseFile,
+  Change,
+  ImportResult,
+  Investigation,
+  PreviewResponse,
+  QueryResult,
+  ResolveResponse,
+} from '../../shared/contracts.js';
 import { createApp } from '../../server/app.js';
 import { MemoryStore, type StoredInvestigation } from '../../server/store.js';
 
@@ -37,10 +45,7 @@ function expectClientError(status: number) {
 }
 
 async function makeInvestigation(app: TestApp, user = 'alice', name: 'market' | 'club' = 'market') {
-  const importResponse = await request(app)
-    .post('/api/demo')
-    .set(userHeader, user)
-    .send({ name });
+  const importResponse = await request(app).post('/api/demo').set(userHeader, user).send({ name });
   expectSuccess(importResponse.status);
 
   const imported = importResponse.body as ImportResult;
@@ -61,7 +66,9 @@ async function makeInvestigation(app: TestApp, user = 'alice', name: 'market' | 
 }
 
 function actionableCase(investigation: Investigation): CaseFile {
-  const found = investigation.cases.find((item) => item.action && item.action.type !== 'reviewCase');
+  const found = investigation.cases.find(
+    (item) => item.action && item.action.type !== 'reviewCase',
+  );
   expect(found, 'demo should include at least one repair case').toBeDefined();
   return found!;
 }
@@ -236,13 +243,21 @@ describe('investigation API integrity', () => {
     const wrongLatest = await request(app)
       .post(`/api/investigations/${initial.id}/undo`)
       .set(userHeader, 'alice')
-      .send({ expectedRevision: resolved.revision, actionId: 'undo-wrong-latest', latestActionId: 'not-latest' });
+      .send({
+        expectedRevision: resolved.revision,
+        actionId: 'undo-wrong-latest',
+        latestActionId: 'not-latest',
+      });
     expectClientError(wrongLatest.status);
 
     const undoResponse = await request(app)
       .post(`/api/investigations/${initial.id}/undo`)
       .set(userHeader, 'alice')
-      .send({ expectedRevision: resolved.revision, actionId: 'test-undo-latest', latestActionId: actionId });
+      .send({
+        expectedRevision: resolved.revision,
+        actionId: 'test-undo-latest',
+        latestActionId: actionId,
+      });
     expectSuccess(undoResponse.status);
     const undone = (undoResponse.body as ResolveResponse).investigation;
     expect(undone.revision).toBe(resolved.revision + 1);
@@ -270,7 +285,10 @@ describe('investigation API integrity', () => {
     const previewResponse = await request(app)
       .post(`/api/investigations/${investigation.id}/preview`)
       .set(userHeader, 'other-user')
-      .send({ expectedRevision: investigation.revision, action: actionableCase(investigation).action });
+      .send({
+        expectedRevision: investigation.revision,
+        action: actionableCase(investigation).action,
+      });
     expectClientError(previewResponse.status);
 
     const createFromForeignImport = await request(app)
@@ -346,7 +364,7 @@ describe('investigation API integrity', () => {
     const malformedApp = await createApp({
       store: new MemoryStore(),
       auth: async (req: Request) => req.header(userHeader) ?? 'test-user',
-      gemini: async () => ({ operation: 'execute_sql', tableId: 'not_a_real_table' } as never),
+      gemini: async () => ({ operation: 'execute_sql', tableId: 'not_a_real_table' }) as never,
       serveClient: false,
     });
     const { investigation } = await makeInvestigation(malformedApp);
@@ -424,11 +442,16 @@ describe('investigation API integrity', () => {
       .set(userHeader, 'alice')
       .send(resolveBody);
     expectSuccess(retryResponse.status);
-    expect((retryResponse.body as ResolveResponse).investigation.revision).toBe(initial.revision + 1);
+    expect((retryResponse.body as ResolveResponse).investigation.revision).toBe(
+      initial.revision + 1,
+    );
   });
 
   it('preserves oversized CSV imports but rejects selecting them into an investigation', async () => {
-    const csvLines = ['id,value', ...Array.from({ length: 501 }, (_, index) => `${index + 1},row-${index + 1}`)];
+    const csvLines = [
+      'id,value',
+      ...Array.from({ length: 501 }, (_, index) => `${index + 1},row-${index + 1}`),
+    ];
     const response = await request(app)
       .post('/api/imports')
       .set(userHeader, 'alice')
@@ -451,10 +474,14 @@ describe('investigation API integrity', () => {
     const uploadResponse = await request(app)
       .post('/api/imports')
       .set(userHeader, 'alice')
-      .attach('files', Buffer.from('id,value\n1,=1+1\n2,@SUM(A1:A2)\n3,-1+2\n4,keep until resolved', 'utf8'), {
-        filename: 'formula-like-values.csv',
-        contentType: 'text/csv',
-      });
+      .attach(
+        'files',
+        Buffer.from('id,value\n1,=1+1\n2,@SUM(A1:A2)\n3,-1+2\n4,keep until resolved', 'utf8'),
+        {
+          filename: 'formula-like-values.csv',
+          contentType: 'text/csv',
+        },
+      );
     expectSuccess(uploadResponse.status);
     const imported = uploadResponse.body as ImportResult;
     const table = imported.tables[0]!;
@@ -468,13 +495,21 @@ describe('investigation API integrity', () => {
     const previewResponse = await request(app)
       .post(`/api/investigations/${investigation.id}/preview`)
       .set(userHeader, 'alice')
-      .send({ expectedRevision: investigation.revision, action: { type: 'excludeRows', tableId: table.id, rowIds: ['row_4'] } });
+      .send({
+        expectedRevision: investigation.revision,
+        action: { type: 'excludeRows', tableId: table.id, rowIds: ['row_4'] },
+      });
     expectSuccess(previewResponse.status);
     const preview = previewResponse.body as PreviewResponse;
     const resolveResponse = await request(app)
       .post(`/api/investigations/${investigation.id}/resolve`)
       .set(userHeader, 'alice')
-      .send({ expectedRevision: investigation.revision, action: preview.action, actionId: 'export-exclude', effectHash: preview.effectHash });
+      .send({
+        expectedRevision: investigation.revision,
+        action: preview.action,
+        actionId: 'export-exclude',
+        effectHash: preview.effectHash,
+      });
     expectSuccess(resolveResponse.status);
 
     const exportResponse = await request(app)
@@ -497,7 +532,11 @@ describe('investigation API integrity', () => {
     vi.stubEnv('SESSION_SECRET', 'testing-session-secret-with-more-than-32-characters');
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('K_SERVICE', '');
-    const sessionApp = await createApp({ store: new MemoryStore(), gemini: null, serveClient: false });
+    const sessionApp = await createApp({
+      store: new MemoryStore(),
+      gemini: null,
+      serveClient: false,
+    });
 
     const configResponse = await request(sessionApp).get('/api/config');
     expectSuccess(configResponse.status);
@@ -508,7 +547,9 @@ describe('investigation API integrity', () => {
     const setCookie = demoResponse.headers['set-cookie'];
     const cookie = Array.isArray(setCookie)
       ? setCookie.find((value) => value.startsWith('dd_session='))
-      : setCookie?.startsWith('dd_session=') ? setCookie : undefined;
+      : setCookie?.startsWith('dd_session=')
+        ? setCookie
+        : undefined;
     expect(cookie).toBeDefined();
     expect(cookie).toMatch(/dd_session=[a-f0-9]{64}\.[a-f0-9]{64}/);
     expect(cookie).toMatch(/; HttpOnly/i);

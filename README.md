@@ -17,12 +17,12 @@
 
 ## How This Solves the Challenge
 
-| Challenge Clause | Implementation & Architectural Feature |
-|---|---|
-| **"Painful digital chore"** | Automated detection and triage of obsolete cloud files, bloated media, duplicate records, and orphaned references that clog storage and workflows. |
+| Challenge Clause                               | Implementation & Architectural Feature                                                                                                                                                              |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **"Painful digital chore"**                    | Automated detection and triage of obsolete cloud files, bloated media, duplicate records, and orphaned references that clog storage and workflows.                                                  |
 | **"Fast-paced game / interactive experience"** | Dynamic game loop where items descend or surface as interactive investigation targets with real-time feedback and non-color redundant cues (Junk = Red 'X', Maybe = Amber '?', Keep = Gold Shield). |
-| **"Actually executes the real-world chore"** | Confirmed player decisions trigger real-world mutations: non-destructive trashing or canonical data repairs with strict validation. |
-| **"In the background"** | Asynchronous non-blocking Action Queue with an optimistic 5-second undo toast window and batched provider execution. The player never waits on API latency. |
+| **"Actually executes the real-world chore"**   | Confirmed player decisions trigger real-world mutations: non-destructive trashing or canonical data repairs with strict validation.                                                                 |
+| **"In the background"**                        | Asynchronous non-blocking Action Queue with an optimistic 5-second undo toast window and batched provider execution. The player never waits on API latency.                                         |
 
 ---
 
@@ -45,6 +45,7 @@ pnpm dev
 ```
 
 Run test suite:
+
 ```sh
 pnpm test:unit
 pnpm test:integration

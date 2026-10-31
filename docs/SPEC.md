@@ -69,22 +69,27 @@
 ## 3. Game Design & Mechanics
 
 ### 3.1 Waves & Asteroid Dynamics
+
 - **Wave Size:** ~15–25 files per wave, ordered from largest quota consumption and oldest access timestamp.
 - **Logarithmic Mass Scaling:** Asteroid radius $R = R_{min} + k \cdot \ln(1 + \text{bytes} / 10^6)$. A 5 GB archive feels imposing and slow; a 50 MB zip is smaller and nimble.
 - **Entity Pooling & Fixed Timestep:** Pre-allocated particle, bullet, and asteroid pools to avoid garbage collection spikes in 60 FPS animation loops.
 
 ### 3.2 Visual & Semantic Coding (WCAG Non-Color Dependent)
+
 Asteroids and list items represent Gemini triage categories using redundant multi-modal cues:
+
 1. **Junk:** Red outline/fill + prominent embossed **"X"** pattern + jagged rocky silhouette.
 2. **Maybe:** Amber outline/fill + prominent **"?"** pattern + faceted hexagonal silhouette.
 3. **Keep:** Gold outline/fill + prominent **Shield** icon + smooth circular crystal silhouette.
 
 ### 3.3 The "Keep" Confirmation Shield
+
 - Blasting a **Keep** asteroid immediately pauses game simulation and opens a focused modal:
-  > *"Caution: This file looks important! Gemini note: [reason]. Are you sure you want to trash it?"*
+  > _"Caution: This file looks important! Gemini note: [reason]. Are you sure you want to trash it?"_
 - Players can confirm or release the asteroid safely back into space.
 
 ### 3.4 Procedural Visuals & Synthesized Audio
+
 - 100% procedural vector graphics rendered on HTML5 2D Canvas (no copyrighted or external bitmap sprites).
 - 100% synthesized procedural sound effects generated via native WebAudio API oscillators and gain envelopes:
   - Laser zap (frequency sweep down)
@@ -97,15 +102,16 @@ Asteroids and list items represent Gemini triage categories using redundant mult
 
 ## 4. Two Operating Modes (Zero-Login Demo vs Real Drive)
 
-| Feature | Demo Mode (Default) | Google Drive Mode |
-|---|---|---|
-| **Authentication** | None required (instant play for judges/evaluators) | Google OAuth 2.0 (Testing mode) |
-| **Data Source** | 60 realistic seeded files (`archive_2021.zip`, `raw_footage.mov`, `resume.pdf`) | Live Google Drive API (`q: 'me' in owners and trashed=false`) |
-| **Gemini Triage** | Real Gemini API call (with heuristic fallback) | Real Gemini API call (with heuristic fallback) |
-| **Real Trash Effect** | Simulated in memory (safe sandbox) | Live Drive API `files.update(trashed=true)` |
-| **Scorer Experience** | Public Cloud Run URL works out-of-the-box | Connect button with transparent permissions modal |
+| Feature               | Demo Mode (Default)                                                             | Google Drive Mode                                             |
+| --------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| **Authentication**    | None required (instant play for judges/evaluators)                              | Google OAuth 2.0 (Testing mode)                               |
+| **Data Source**       | 60 realistic seeded files (`archive_2021.zip`, `raw_footage.mov`, `resume.pdf`) | Live Google Drive API (`q: 'me' in owners and trashed=false`) |
+| **Gemini Triage**     | Real Gemini API call (with heuristic fallback)                                  | Real Gemini API call (with heuristic fallback)                |
+| **Real Trash Effect** | Simulated in memory (safe sandbox)                                              | Live Drive API `files.update(trashed=true)`                   |
+| **Scorer Experience** | Public Cloud Run URL works out-of-the-box                                       | Connect button with transparent permissions modal             |
 
 Both modes implement the exact same `FileProvider` contract:
+
 ```typescript
 export interface FileProvider {
   readonly mode: 'demo' | 'drive';

@@ -6,7 +6,8 @@ export class HeuristicClassifier {
     const sizeMb = file.size / (1024 * 1024);
 
     // 1. High Priority KEEP patterns (Documents, taxes, passports, resumes, contracts)
-    const keepRegex = /(resume|cv|tax|passport|invoice|contract|statement|deed|certificate|diploma|id_card)/i;
+    const keepRegex =
+      /(resume|cv|tax|passport|invoice|contract|statement|deed|certificate|diploma|id_card)/i;
     if (keepRegex.test(nameLower)) {
       return {
         id: file.id,
@@ -19,7 +20,10 @@ export class HeuristicClassifier {
 
     // 2. High Priority JUNK patterns
     // Installers / executables / dmg / pkg / deb / rpm
-    if (/\.(exe|msi|dmg|pkg|deb|rpm|iso|apk)$/i.test(nameLower) || /setup|installer/i.test(nameLower)) {
+    if (
+      /\.(exe|msi|dmg|pkg|deb|rpm|iso|apk)$/i.test(nameLower) ||
+      /setup|installer/i.test(nameLower)
+    ) {
       return {
         id: file.id,
         verdict: 'junk',

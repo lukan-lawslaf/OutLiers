@@ -149,7 +149,9 @@ export class ActionQueue {
           this.events.onConfirmedFreed?.(this.totalConfirmedBytes, bytes);
         } else {
           action.status = 'failed';
-          this.events.onError?.(`Failed to trash ${action.file.name}: ${res.error || 'Unknown error'}`);
+          this.events.onError?.(
+            `Failed to trash ${action.file.name}: ${res.error || 'Unknown error'}`,
+          );
         }
         this.pendingMap.delete(res.id);
       }

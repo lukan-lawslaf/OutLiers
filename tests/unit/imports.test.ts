@@ -17,7 +17,9 @@ async function xlsxUpload(makeWorkbook: (workbook: ExcelJS.Workbook) => void): P
 
 describe('CSV and XLSX import limits', () => {
   it('strips a CSV byte-order mark and preserves literal values in originals', async () => {
-    const result = await parseUploads([csvUpload('\uFEFFid,name\n001,Ada Lovelace\n002,Grace Hopper')]);
+    const result = await parseUploads([
+      csvUpload('\uFEFFid,name\n001,Ada Lovelace\n002,Grace Hopper'),
+    ]);
     const table = result.tables[0]!;
 
     expect(table.columns.map((column) => column.name)).toEqual(['id', 'name']);
@@ -27,7 +29,10 @@ describe('CSV and XLSX import limits', () => {
   });
 
   it('preserves candidate rows on import and enforces the selected-table row limit', async () => {
-    const allowed = ['id,value', ...Array.from({ length: LIMITS.maxRows }, (_, index) => `${index},row-${index}`)].join('\n');
+    const allowed = [
+      'id,value',
+      ...Array.from({ length: LIMITS.maxRows }, (_, index) => `${index},row-${index}`),
+    ].join('\n');
     const parsed = await parseUploads([csvUpload(allowed)]);
     expect(parsed.tables[0]?.rows).toHaveLength(LIMITS.maxRows);
 
@@ -36,8 +41,13 @@ describe('CSV and XLSX import limits', () => {
     expect(imported.tables[0]?.rows).toHaveLength(LIMITS.maxRows + 1);
     expect(imported.tables[0]?.rows.at(-1)?.values.col_0).toBe('500');
 
-    const matrix = [['id', 'value'], ...Array.from({ length: LIMITS.maxRows + 1 }, (_, index) => [String(index), `row-${index}`])];
-    expect(() => makeTable('selected-too-large', matrix)).toThrowError(expect.objectContaining({ code: 'ROW_LIMIT', status: 400 }));
+    const matrix = [
+      ['id', 'value'],
+      ...Array.from({ length: LIMITS.maxRows + 1 }, (_, index) => [String(index), `row-${index}`]),
+    ];
+    expect(() => makeTable('selected-too-large', matrix)).toThrowError(
+      expect.objectContaining({ code: 'ROW_LIMIT', status: 400 }),
+    );
   });
 
   it('preserves candidate columns on import and enforces the selected-table column limit', async () => {
@@ -50,18 +60,26 @@ describe('CSV and XLSX import limits', () => {
     const tooWideRow = `${row},extra`;
     const tooWide = await parseUploads([csvUpload(`${tooWideHeader}\n${tooWideRow}`)]);
     expect(tooWide.tables[0]?.columns).toHaveLength(LIMITS.maxColumns + 1);
-    expect(() => makeTable('selected-too-wide', [tooWideHeader.split(','), tooWideRow.split(',')])).toThrowError(expect.objectContaining({ code: 'COLUMN_LIMIT', status: 400 }));
+    expect(() =>
+      makeTable('selected-too-wide', [tooWideHeader.split(','), tooWideRow.split(',')]),
+    ).toThrowError(expect.objectContaining({ code: 'COLUMN_LIMIT', status: 400 }));
   });
 
   it('rejects files over the upload size limit before parsing them', async () => {
     const buffer = Buffer.alloc(LIMITS.maxFileBytes + 1, 32);
-    await expect(parseUploads([{ originalname: 'large.csv', buffer }])).rejects.toMatchObject({ code: 'FILE_LIMIT', status: 413 });
+    await expect(parseUploads([{ originalname: 'large.csv', buffer }])).rejects.toMatchObject({
+      code: 'FILE_LIMIT',
+      status: 413,
+    });
   });
 
   it('imports XLSX cached formula results as literal values', async () => {
     const upload = await xlsxUpload((workbook) => {
       const sheet = workbook.addWorksheet('Values');
-      sheet.addRows([['id', 'total'], ['A', 10]]);
+      sheet.addRows([
+        ['id', 'total'],
+        ['A', 10],
+      ]);
       sheet.getCell('B3').value = { formula: '5+7', result: 12 };
       sheet.getCell('A3').value = 'B';
     });
@@ -75,11 +93,17 @@ describe('CSV and XLSX import limits', () => {
   it('rejects XLSX formulas with no cached literal result instead of executing them', async () => {
     const upload = await xlsxUpload((workbook) => {
       const sheet = workbook.addWorksheet('Formula');
-      sheet.addRows([['id', 'total'], ['A', 10]]);
+      sheet.addRows([
+        ['id', 'total'],
+        ['A', 10],
+      ]);
       sheet.getCell('A3').value = 'B';
       sheet.getCell('B3').value = { formula: 'SUM(B2:B2)' };
     });
 
-    await expect(parseUploads([upload])).rejects.toMatchObject({ code: 'FORMULA_UNSUPPORTED', status: 400 });
+    await expect(parseUploads([upload])).rejects.toMatchObject({
+      code: 'FORMULA_UNSUPPORTED',
+      status: 400,
+    });
   });
 });

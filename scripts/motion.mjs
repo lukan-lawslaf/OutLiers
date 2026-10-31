@@ -5,10 +5,14 @@ import { resolve } from 'node:path';
 const mode = process.argv[2];
 if (!['check', 'render'].includes(mode)) throw new Error('Use motion.mjs check|render');
 const directory = resolve('motion/intro');
-if (!existsSync(resolve(directory, 'index.html'))) throw new Error('Opening source missing: motion/intro/index.html');
+if (!existsSync(resolve(directory, 'index.html')))
+  throw new Error('Opening source missing: motion/intro/index.html');
 const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const run = (args) => {
-  const result = spawnSync(pnpm, ['--dir', directory, 'exec', 'hyperframes', ...args], { stdio: 'inherit', shell: process.platform === 'win32' });
+  const result = spawnSync(pnpm, ['--dir', directory, 'exec', 'hyperframes', ...args], {
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  });
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status || 1);
 };
@@ -17,5 +21,13 @@ if (mode === 'check') {
   run(['validate']);
   run(['inspect']);
 } else {
-  run(['render', '--output', resolve('public/media/intro.mp4'), '--fps', '30', '--quality', 'standard']);
+  run([
+    'render',
+    '--output',
+    resolve('public/media/intro.mp4'),
+    '--fps',
+    '30',
+    '--quality',
+    'standard',
+  ]);
 }

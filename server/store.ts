@@ -29,7 +29,10 @@ export interface Store {
   getImport(id: string): Promise<StoredImport | undefined>;
   create(item: StoredInvestigation): Promise<void>;
   get(id: string): Promise<StoredInvestigation | undefined>;
-  transact(id: string, update: (item: StoredInvestigation) => StoredInvestigation): Promise<StoredInvestigation>;
+  transact(
+    id: string,
+    update: (item: StoredInvestigation) => StoredInvestigation,
+  ): Promise<StoredInvestigation>;
 }
 
 type ResourceKind = 'imports' | 'investigations';
@@ -50,7 +53,10 @@ export class MemoryStore implements Store {
 
   private async serialize<T>(key: string, operation: () => Promise<T>): Promise<T> {
     const task = (this.queues.get(key) ?? Promise.resolve()).then(operation);
-    const settled = task.then(() => undefined, () => undefined);
+    const settled = task.then(
+      () => undefined,
+      () => undefined,
+    );
     this.queues.set(key, settled);
     void settled.then(() => {
       if (this.queues.get(key) === settled) this.queues.delete(key);
@@ -73,7 +79,12 @@ export class MemoryStore implements Store {
   async create(item: StoredInvestigation): Promise<void> {
     const snapshot = structuredClone(item);
     await this.serialize(`investigations:${snapshot.data.id}`, async () => {
-      insist(!this.state.investigations[snapshot.data.id], 409, 'ALREADY_EXISTS', 'Investigation already exists.');
+      insist(
+        !this.state.investigations[snapshot.data.id],
+        409,
+        'ALREADY_EXISTS',
+        'Investigation already exists.',
+      );
       await this.persist('investigations', snapshot);
       this.state.investigations[snapshot.data.id] = snapshot;
     });
@@ -83,12 +94,20 @@ export class MemoryStore implements Store {
     return structuredClone(this.state.investigations[id]);
   }
 
-  async transact(id: string, update: (item: StoredInvestigation) => StoredInvestigation): Promise<StoredInvestigation> {
+  async transact(
+    id: string,
+    update: (item: StoredInvestigation) => StoredInvestigation,
+  ): Promise<StoredInvestigation> {
     return this.serialize(`investigations:${id}`, async () => {
       const current = this.state.investigations[id];
       insist(current, 404, 'NOT_FOUND', 'Investigation not found.');
       const updated = update(structuredClone(current));
-      insist(updated.data.id === id, 409, 'RESOURCE_ID_CONFLICT', 'An investigation ID cannot be changed.');
+      insist(
+        updated.data.id === id,
+        409,
+        'RESOURCE_ID_CONFLICT',
+        'An investigation ID cannot be changed.',
+      );
       const committed = structuredClone(updated);
       await this.persist('investigations', committed);
       this.state.investigations[id] = committed;
@@ -104,14 +123,20 @@ export class FileStore extends MemoryStore {
   }
 
   async initialize(): Promise<this> {
-    await Promise.all(['imports', 'investigations'].map(kind => mkdir(path.join(this.directory, kind), { recursive: true })));
+    await Promise.all(
+      ['imports', 'investigations'].map((kind) =>
+        mkdir(path.join(this.directory, kind), { recursive: true }),
+      ),
+    );
     await this.migrateLegacyState();
     this.state = { imports: {}, investigations: {} };
     for (const kind of ['imports', 'investigations'] as const) {
       const names = await readdir(path.join(this.directory, kind));
       for (const name of names) {
         if (!/^[a-f0-9]{64}\.json$/.test(name)) continue;
-        const item = JSON.parse(await readFile(path.join(this.directory, kind, name), 'utf8')) as Resource;
+        const item = JSON.parse(
+          await readFile(path.join(this.directory, kind, name), 'utf8'),
+        ) as Resource;
         if (kind === 'imports') this.state.imports[item.data.id] = item as StoredImport;
         else this.state.investigations[item.data.id] = item as StoredInvestigation;
       }

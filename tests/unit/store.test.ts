@@ -3,14 +3,22 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Investigation } from '../../shared/contracts.js';
-import { FileStore, MemoryStore, type StoredImport, type StoredInvestigation } from '../../server/store.js';
+import {
+  FileStore,
+  MemoryStore,
+  type StoredImport,
+  type StoredInvestigation,
+} from '../../server/store.js';
 
 const temporaryDirectories: string[] = [];
 
 class FailingPersistFileStore extends FileStore {
   failNextPersistence = false;
 
-  protected override async persist(kind: 'imports' | 'investigations', item: StoredImport | StoredInvestigation): Promise<void> {
+  protected override async persist(
+    kind: 'imports' | 'investigations',
+    item: StoredImport | StoredInvestigation,
+  ): Promise<void> {
     if (this.failNextPersistence) {
       this.failNextPersistence = false;
       throw new Error('simulated file persistence failure');
@@ -24,23 +32,43 @@ async function makeStored(id: string, ownerId: string): Promise<StoredInvestigat
     id,
     title: `Case ${id}`,
     revision: 0,
-    tables: [{
-      id: `table-${id}`,
-      name: `Table ${id}`,
-      columns: [{ id: 'value', name: 'Value', kind: 'text' }],
-      rows: [{ id: `row-${id}`, original: { value: `source-${id}` }, values: { value: `source-${id}` }, excluded: false }],
-    }],
+    tables: [
+      {
+        id: `table-${id}`,
+        name: `Table ${id}`,
+        columns: [{ id: 'value', name: 'Value', kind: 'text' }],
+        rows: [
+          {
+            id: `row-${id}`,
+            original: { value: `source-${id}` },
+            values: { value: `source-${id}` },
+            excluded: false,
+          },
+        ],
+      },
+    ],
     cases: [],
     findings: [],
     history: [],
-    stats: { totalRows: 1, activeRows: 1, changedRows: 0, openCases: 0, resolvedCases: 0, savedFindings: 0 },
+    stats: {
+      totalRows: 1,
+      activeRows: 1,
+      changedRows: 0,
+      openCases: 0,
+      resolvedCases: 0,
+      savedFindings: 0,
+    },
     aiStatus: 'disabled',
   };
   return { ownerId, data: investigation, receipts: {}, pendingFindings: {}, reviewUndos: {} };
 }
 
 afterEach(async () => {
-  await Promise.all(temporaryDirectories.splice(0).map((directory) => rm(directory, { recursive: true, force: true })));
+  await Promise.all(
+    temporaryDirectories
+      .splice(0)
+      .map((directory) => rm(directory, { recursive: true, force: true })),
+  );
 });
 
 describe('store resource isolation and rollback', () => {
@@ -51,11 +79,15 @@ describe('store resource isolation and rollback', () => {
     await Promise.all([store.create(first), store.create(second)]);
     const secondBefore = await store.get(second.data.id);
 
-    await Promise.all(Array.from({ length: 20 }, () => store.transact(first.data.id, (item) => {
-      item.data.revision++;
-      item.data.tables[0]!.rows[0]!.values.value = `working-${item.data.revision}`;
-      return item;
-    })));
+    await Promise.all(
+      Array.from({ length: 20 }, () =>
+        store.transact(first.data.id, (item) => {
+          item.data.revision++;
+          item.data.tables[0]!.rows[0]!.values.value = `working-${item.data.revision}`;
+          return item;
+        }),
+      ),
+    );
     const updated = await store.get(first.data.id);
     expect(updated?.data.revision).toBe(20);
     expect(updated?.data.tables[0]?.rows[0]?.original).toEqual({ value: 'source-case-one' });
@@ -73,12 +105,14 @@ describe('store resource isolation and rollback', () => {
     await store.create(first);
     const before = await store.get(first.data.id);
 
-    await expect(store.transact(first.data.id, (item) => {
-      item.data.revision++;
-      item.data.title = 'partially changed';
-      item.data.tables[0]!.rows[0]!.values.value = 'uncommitted';
-      throw new Error('simulated transaction abort');
-    })).rejects.toThrow('simulated transaction abort');
+    await expect(
+      store.transact(first.data.id, (item) => {
+        item.data.revision++;
+        item.data.title = 'partially changed';
+        item.data.tables[0]!.rows[0]!.values.value = 'uncommitted';
+        throw new Error('simulated transaction abort');
+      }),
+    ).rejects.toThrow('simulated transaction abort');
 
     expect(await store.get(first.data.id)).toEqual(before);
     const committed = await store.transact(first.data.id, (item) => {
@@ -106,7 +140,19 @@ describe('store resource isolation and rollback', () => {
       restarted.get(first.data.id),
       restarted.get(second.data.id),
     ]);
-    expect(restoredFirst).toMatchObject({ ownerId: 'owner-one', data: { revision: 1, tables: [{ rows: [{ original: { value: 'source-persisted-one' }, values: { value: 'confirmed edit' } }] }] } });
+    expect(restoredFirst).toMatchObject({
+      ownerId: 'owner-one',
+      data: {
+        revision: 1,
+        tables: [
+          {
+            rows: [
+              { original: { value: 'source-persisted-one' }, values: { value: 'confirmed edit' } },
+            ],
+          },
+        ],
+      },
+    });
     expect(restoredSecond).toEqual(second);
   });
 
@@ -142,11 +188,13 @@ describe('store resource isolation and rollback', () => {
     await store.create(record);
 
     store.failNextPersistence = true;
-    await expect(store.transact(record.data.id, (item) => {
-      item.data.revision++;
-      item.data.title = 'must not commit';
-      return item;
-    })).rejects.toThrow('simulated file persistence failure');
+    await expect(
+      store.transact(record.data.id, (item) => {
+        item.data.revision++;
+        item.data.title = 'must not commit';
+        return item;
+      }),
+    ).rejects.toThrow('simulated file persistence failure');
 
     expect(await store.get(record.data.id)).toEqual(record);
     const restarted = await new FileStore(directory).initialize();

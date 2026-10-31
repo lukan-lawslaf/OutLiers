@@ -7,7 +7,12 @@ function row(id: string, values: Record<string, Cell>): DataRow {
   return { id, original: { ...values }, values: { ...values }, excluded: false };
 }
 
-function table(id: string, name: string, columns: DataTable['columns'], rows: DataRow[]): DataTable {
+function table(
+  id: string,
+  name: string,
+  columns: DataTable['columns'],
+  rows: DataRow[],
+): DataTable {
   return { id, name, columns, rows };
 }
 
@@ -20,7 +25,14 @@ function investigation(tables: DataTable[], id = 'baseline'): Investigation {
     cases: [],
     findings: [],
     history: [],
-    stats: { totalRows: 0, activeRows: 0, changedRows: 0, openCases: 0, resolvedCases: 0, savedFindings: 0 },
+    stats: {
+      totalRows: 0,
+      activeRows: 0,
+      changedRows: 0,
+      openCases: 0,
+      resolvedCases: 0,
+      savedFindings: 0,
+    },
     aiStatus: 'disabled',
   };
 }
@@ -51,22 +63,44 @@ const aliasColumns: DataTable['columns'] = [
   { id: 'name', name: 'Name', kind: 'text' },
   { id: 'group', name: 'Group', kind: 'text' },
 ];
-const aliasTable = table('aliases', 'Aliases', aliasColumns, Array.from({ length: 500 }, (_, index) => row(`a${index}`, {
-  person_id: `P${String(index).padStart(4, '0')}`,
-  name: index % 2 ? 'moss_reed' : 'Moss Reed',
-  group: `group-${index % 10}`,
-})));
+const aliasTable = table(
+  'aliases',
+  'Aliases',
+  aliasColumns,
+  Array.from({ length: 500 }, (_, index) =>
+    row(`a${index}`, {
+      person_id: `P${String(index).padStart(4, '0')}`,
+      name: index % 2 ? 'moss_reed' : 'Moss Reed',
+      group: `group-${index % 10}`,
+    }),
+  ),
+);
 const duplicateColumns: DataTable['columns'] = [
   { id: 'code', name: 'Code', kind: 'text' },
   { id: 'kind', name: 'Kind', kind: 'text' },
 ];
-const duplicateTable = table('duplicates', 'Duplicates', duplicateColumns, Array.from({ length: 500 }, (_, index) => row(`d${index}`, { code: 'DUP', kind: 'same' })));
+const duplicateTable = table(
+  'duplicates',
+  'Duplicates',
+  duplicateColumns,
+  Array.from({ length: 500 }, (_, index) => row(`d${index}`, { code: 'DUP', kind: 'same' })),
+);
 const fixture = investigation([aliasTable, duplicateTable]);
 fixture.identity = { tableId: aliasTable.id, columnId: 'name' };
 
 const storeFixture = (id: number): StoredInvestigation => ({
   ownerId: `owner-${id}`,
-  data: investigation([table(`table-${id}`, `Table ${id}`, [{ id: 'value', name: 'Value', kind: 'text' }], Array.from({ length: 5 }, (_, index) => row(`r${index}`, { value: `v${index}` })))], `investigation-${id}`),
+  data: investigation(
+    [
+      table(
+        `table-${id}`,
+        `Table ${id}`,
+        [{ id: 'value', name: 'Value', kind: 'text' }],
+        Array.from({ length: 5 }, (_, index) => row(`r${index}`, { value: `v${index}` })),
+      ),
+    ],
+    `investigation-${id}`,
+  ),
   receipts: {},
   pendingFindings: {},
   reviewUndos: {},
@@ -82,26 +116,60 @@ async function measureStore(remembered = 200) {
   await Promise.all(entries.map((entry) => store.get(entry.data.id)));
   const readManyMs = performance.now() - readStarted;
   const transactionStarted = performance.now();
-  await Promise.all(entries.map((entry) => store.transact(entry.data.id, (stored) => {
-    stored.data.revision++;
-    return stored;
-  })));
+  await Promise.all(
+    entries.map((entry) =>
+      store.transact(entry.data.id, (stored) => {
+        stored.data.revision++;
+        return stored;
+      }),
+    ),
+  );
   const transactManyMs = performance.now() - transactionStarted;
-  return { independentInvestigations: remembered, createAllMs: createMs, parallelGetAllMs: readManyMs, parallelTransactAllMs: transactManyMs };
+  return {
+    independentInvestigations: remembered,
+    createAllMs: createMs,
+    parallelGetAllMs: readManyMs,
+    parallelTransactAllMs: transactManyMs,
+  };
 }
 
 async function main() {
   const duplicateGroupsMs = measureSync(() => duplicateGroups(duplicateTable));
   const detectCasesMs = measureSync(() => detectCases(fixture));
-  const groupCountMs = measureSync(() => runQuery(fixture, { mode: 'discovery', operation: 'group_count', tableId: aliasTable.id, columnId: 'group' }));
+  const groupCountMs = measureSync(() =>
+    runQuery(fixture, {
+      mode: 'discovery',
+      operation: 'group_count',
+      tableId: aliasTable.id,
+      columnId: 'group',
+    }),
+  );
   const store = await measureStore();
-  console.log(JSON.stringify({
-    node: process.version,
-    fixtures: { aliasRows: aliasTable.rows.length, exactDuplicateRows: duplicateTable.rows.length, uniqueInvestigations: store.independentInvestigations },
-    medianEngineMs: { duplicateGroupsOne500RowGroup: duplicateGroupsMs, detectCasesBothTables: detectCasesMs, groupCount500Rows: groupCountMs },
-    memoryStoreMs: { createAll200: store.createAllMs, parallelGetAll200: store.parallelGetAllMs, parallelTransactAll200: store.parallelTransactAllMs },
-    note: 'Informational baseline only; durations are reported but do not gate correctness tests.',
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        node: process.version,
+        fixtures: {
+          aliasRows: aliasTable.rows.length,
+          exactDuplicateRows: duplicateTable.rows.length,
+          uniqueInvestigations: store.independentInvestigations,
+        },
+        medianEngineMs: {
+          duplicateGroupsOne500RowGroup: duplicateGroupsMs,
+          detectCasesBothTables: detectCasesMs,
+          groupCount500Rows: groupCountMs,
+        },
+        memoryStoreMs: {
+          createAll200: store.createAllMs,
+          parallelGetAll200: store.parallelGetAllMs,
+          parallelTransactAll200: store.parallelTransactAllMs,
+        },
+        note: 'Informational baseline only; durations are reported but do not gate correctness tests.',
+      },
+      null,
+      2,
+    ),
+  );
 }
 
 void main();

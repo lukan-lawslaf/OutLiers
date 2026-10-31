@@ -6,11 +6,19 @@ function makeRow(id: string, values: Record<string, Cell>, excluded = false): Da
   return { id, original: { ...values }, values: { ...values }, excluded };
 }
 
-function makeTable(id: string, name: string, columns: DataTable['columns'], rows: DataRow[]): DataTable {
+function makeTable(
+  id: string,
+  name: string,
+  columns: DataTable['columns'],
+  rows: DataRow[],
+): DataTable {
   return { id, name, columns, rows };
 }
 
-function makeInvestigation(tables: DataTable[], extras: Partial<Investigation> = {}): Investigation {
+function makeInvestigation(
+  tables: DataTable[],
+  extras: Partial<Investigation> = {},
+): Investigation {
   const rows = tables.flatMap((table) => table.rows);
   return {
     id: 'inv_unit',
@@ -59,7 +67,9 @@ describe('active-row policy', () => {
     ]);
     const investigation = makeInvestigation([table]);
 
-    expect(duplicateGroups(table).map((group) => group.map((row) => row.id))).toEqual([['p1', 'p2']]);
+    expect(duplicateGroups(table).map((group) => group.map((row) => row.id))).toEqual([
+      ['p1', 'p2'],
+    ]);
 
     const duplicateResult = runQuery(investigation, {
       mode: 'discovery',
@@ -83,16 +93,32 @@ describe('active-row policy', () => {
   });
 
   it('retains one 500-row alias group and one 500-row exact duplicate group', () => {
-    const aliases = makeTable('aliases', 'Aliases', peopleColumns, Array.from({ length: 500 }, (_, index) => makeRow(`a${index}`, {
-      person_id: `P${String(index).padStart(4, '0')}`,
-      name: index % 2 ? 'moss_reed' : 'Moss Reed',
-      team: `team-${index % 10}`,
-    })));
-    const duplicates = makeTable('copies', 'Copies', [
-      { id: 'code', name: 'Code', kind: 'text' },
-      { id: 'kind', name: 'Kind', kind: 'text' },
-    ], Array.from({ length: 500 }, (_, index) => makeRow(`d${index}`, { code: 'DUP', kind: 'same' })));
-    const investigation = makeInvestigation([aliases, duplicates], { identity: { tableId: aliases.id, columnId: 'name' } });
+    const aliases = makeTable(
+      'aliases',
+      'Aliases',
+      peopleColumns,
+      Array.from({ length: 500 }, (_, index) =>
+        makeRow(`a${index}`, {
+          person_id: `P${String(index).padStart(4, '0')}`,
+          name: index % 2 ? 'moss_reed' : 'Moss Reed',
+          team: `team-${index % 10}`,
+        }),
+      ),
+    );
+    const duplicates = makeTable(
+      'copies',
+      'Copies',
+      [
+        { id: 'code', name: 'Code', kind: 'text' },
+        { id: 'kind', name: 'Kind', kind: 'text' },
+      ],
+      Array.from({ length: 500 }, (_, index) =>
+        makeRow(`d${index}`, { code: 'DUP', kind: 'same' }),
+      ),
+    );
+    const investigation = makeInvestigation([aliases, duplicates], {
+      identity: { tableId: aliases.id, columnId: 'name' },
+    });
 
     expect(duplicateGroups(duplicates)).toHaveLength(1);
     expect(duplicateGroups(duplicates)[0]).toHaveLength(500);
@@ -101,10 +127,15 @@ describe('active-row policy', () => {
     const duplicateCase = cases.find((item) => item.kind === 'duplicate');
     expect(aliasCase?.evidence[0]?.rowIds).toHaveLength(500);
     expect(aliasCase?.action?.type).toBe('canonicalizeAliases');
-    if (aliasCase?.action?.type === 'canonicalizeAliases') expect(aliasCase.action.rowIds).toHaveLength(500);
+    if (aliasCase?.action?.type === 'canonicalizeAliases')
+      expect(aliasCase.action.rowIds).toHaveLength(500);
     expect(duplicateCase?.evidence[0]?.rowIds).toHaveLength(500);
-    expect(duplicateCase?.action).toMatchObject({ type: 'excludeRows', rowIds: expect.arrayContaining(['d1', 'd499']) });
-    if (duplicateCase?.action?.type === 'excludeRows') expect(duplicateCase.action.rowIds).toHaveLength(499);
+    expect(duplicateCase?.action).toMatchObject({
+      type: 'excludeRows',
+      rowIds: expect.arrayContaining(['d1', 'd499']),
+    });
+    if (duplicateCase?.action?.type === 'excludeRows')
+      expect(duplicateCase.action.rowIds).toHaveLength(499);
   });
 });
 
@@ -114,7 +145,9 @@ describe('preview validation', () => {
       makeRow('p1', { person_id: '1', name: 'Ada Lovelace', team: 'blue' }),
       makeRow('p2', { person_id: '2', name: 'ada_lovelace', team: 'blue' }),
     ]);
-    const investigation = makeInvestigation([table], { identity: { tableId: 'people', columnId: 'name' } });
+    const investigation = makeInvestigation([table], {
+      identity: { tableId: 'people', columnId: 'name' },
+    });
     const before = structuredClone(investigation);
     const action = {
       type: 'canonicalizeAliases' as const,
@@ -130,7 +163,14 @@ describe('preview validation', () => {
     expect(first).toEqual(second);
     expect(first.revision).toBe(investigation.revision);
     expect(first.changes).toEqual([
-      { tableId: 'people', rowId: 'p2', columnId: 'name', kind: 'cell', before: 'ada_lovelace', after: 'Ada Lovelace' },
+      {
+        tableId: 'people',
+        rowId: 'p2',
+        columnId: 'name',
+        kind: 'cell',
+        before: 'ada_lovelace',
+        after: 'Ada Lovelace',
+      },
     ]);
     expect(investigation).toEqual(before);
   });
@@ -140,42 +180,86 @@ describe('preview validation', () => {
       makeRow('p1', { person_id: '1', name: 'Ada Lovelace', team: 'blue' }),
       makeRow('p2', { person_id: '2', name: 'ada_lovelace', team: 'blue' }),
     ]);
-    const investigation = makeInvestigation([table], { identity: { tableId: 'people', columnId: 'name' } });
+    const investigation = makeInvestigation([table], {
+      identity: { tableId: 'people', columnId: 'name' },
+    });
 
-    expectAppError(() => preview(investigation, {
-      type: 'canonicalizeAliases', tableId: 'people', columnId: 'team', rowIds: ['p1'], value: 'green',
-    }), 400, 'INVALID_IDENTITY');
+    expectAppError(
+      () =>
+        preview(investigation, {
+          type: 'canonicalizeAliases',
+          tableId: 'people',
+          columnId: 'team',
+          rowIds: ['p1'],
+          value: 'green',
+        }),
+      400,
+      'INVALID_IDENTITY',
+    );
   });
 
   it('requires a unique active parent for link repairs and accepts a target whose duplicate is excluded', () => {
-    const parent = makeTable('parents', 'Parents', [
-      { id: 'code', name: 'Code', kind: 'text' },
-    ], [
-      makeRow('parent-1', { code: 'K1' }),
-      makeRow('parent-2', { code: 'K2' }),
-      makeRow('parent-2-copy', { code: 'K2' }, true),
-      makeRow('parent-3', { code: 'K3' }),
-      makeRow('parent-3-copy', { code: 'K3' }),
-    ]);
-    const child = makeTable('children', 'Children', [
-      { id: 'parent_code', name: 'Parent code', kind: 'text' },
-    ], [makeRow('child-1', { parent_code: 'BROKEN' })]);
+    const parent = makeTable(
+      'parents',
+      'Parents',
+      [{ id: 'code', name: 'Code', kind: 'text' }],
+      [
+        makeRow('parent-1', { code: 'K1' }),
+        makeRow('parent-2', { code: 'K2' }),
+        makeRow('parent-2-copy', { code: 'K2' }, true),
+        makeRow('parent-3', { code: 'K3' }),
+        makeRow('parent-3-copy', { code: 'K3' }),
+      ],
+    );
+    const child = makeTable(
+      'children',
+      'Children',
+      [{ id: 'parent_code', name: 'Parent code', kind: 'text' }],
+      [makeRow('child-1', { parent_code: 'BROKEN' })],
+    );
     const investigation = makeInvestigation([parent, child], {
-      join: { parentTableId: 'parents', parentColumnId: 'code', childTableId: 'children', childColumnId: 'parent_code' },
+      join: {
+        parentTableId: 'parents',
+        parentColumnId: 'code',
+        childTableId: 'children',
+        childColumnId: 'parent_code',
+      },
     });
 
     const valid = preview(investigation, {
-      type: 'repairLinks', tableId: 'children', columnId: 'parent_code', rowIds: ['child-1'], value: 'K2',
+      type: 'repairLinks',
+      tableId: 'children',
+      columnId: 'parent_code',
+      rowIds: ['child-1'],
+      value: 'K2',
     });
     expect(valid.changes).toHaveLength(1);
     expect(valid.changes[0]?.after).toBe('K2');
 
-    expectAppError(() => preview(investigation, {
-      type: 'repairLinks', tableId: 'children', columnId: 'parent_code', rowIds: ['child-1'], value: 'K3',
-    }), 400, 'INVALID_TARGET');
-    expectAppError(() => preview(investigation, {
-      type: 'repairLinks', tableId: 'children', columnId: 'parent_code', rowIds: ['child-1'], value: 'UNKNOWN',
-    }), 400, 'INVALID_TARGET');
+    expectAppError(
+      () =>
+        preview(investigation, {
+          type: 'repairLinks',
+          tableId: 'children',
+          columnId: 'parent_code',
+          rowIds: ['child-1'],
+          value: 'K3',
+        }),
+      400,
+      'INVALID_TARGET',
+    );
+    expectAppError(
+      () =>
+        preview(investigation, {
+          type: 'repairLinks',
+          tableId: 'children',
+          columnId: 'parent_code',
+          rowIds: ['child-1'],
+          value: 'UNKNOWN',
+        }),
+      400,
+      'INVALID_TARGET',
+    );
   });
 
   it('rejects absent query operations as unsupported instead of fabricating an answer', () => {
@@ -183,6 +267,10 @@ describe('preview validation', () => {
       makeRow('p1', { person_id: '1', name: 'Ada Lovelace', team: 'blue' }),
     ]);
     const investigation = makeInvestigation([table]);
-    expectAppError(() => runQuery(investigation, { mode: 'open', prompt: 'show me a made-up operation' }), 422, 'UNSUPPORTED_QUERY');
+    expectAppError(
+      () => runQuery(investigation, { mode: 'open', prompt: 'show me a made-up operation' }),
+      422,
+      'UNSUPPORTED_QUERY',
+    );
   });
 });

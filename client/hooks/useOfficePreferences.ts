@@ -3,14 +3,19 @@ import { storageGet, storageKeys, storageSet } from '../utils/storage';
 
 function preferredMotion(): boolean {
   const saved = storageGet(storageKeys.motion);
-  return saved === 'reduced' || (saved !== 'full' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  return (
+    saved === 'reduced' ||
+    (saved !== 'full' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+  );
 }
 
 export function useOfficePreferences() {
   const [reduced, setReduced] = useState(preferredMotion);
   const [flat, setFlat] = useState(() => storageGet(storageKeys.office) === 'flat');
   const [sound, setSound] = useState(false);
-  const [showIntro, setShowIntro] = useState(() => !storageGet(storageKeys.intro) && !preferredMotion());
+  const [showIntro, setShowIntro] = useState(
+    () => !storageGet(storageKeys.intro) && !preferredMotion(),
+  );
   const finishIntro = useCallback(() => {
     storageSet(storageKeys.intro, 'seen');
     setShowIntro(false);
@@ -21,7 +26,11 @@ export function useOfficePreferences() {
   }, [finishIntro, reduced, showIntro]);
 
   return {
-    reduced, flat, sound, showIntro, finishIntro,
+    reduced,
+    flat,
+    sound,
+    showIntro,
+    finishIntro,
     setReduced: useCallback((value: boolean) => {
       setReduced(value);
       storageSet(storageKeys.motion, value ? 'reduced' : 'full');
@@ -59,14 +68,17 @@ export function useCaseFeedback(sound: boolean) {
   const [announcement, setAnnouncement] = useState('');
   const [toast, setToast] = useState('');
   const enabled = useRef(sound);
-  useEffect(() => { enabled.current = sound; }, [sound]);
+  useEffect(() => {
+    enabled.current = sound;
+  }, [sound]);
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(''), 5000);
     return () => window.clearTimeout(timer);
   }, [toast]);
   return {
-    announcement, toast,
+    announcement,
+    toast,
     notify: useCallback((message: string) => {
       setAnnouncement(message);
       setToast(message);
