@@ -43,6 +43,8 @@ export function useOfficePreferences() {
   };
 }
 
+export type OfficePreferences = ReturnType<typeof useOfficePreferences>;
+
 function playChime() {
   try {
     const audio = new AudioContext();

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Table2 } from 'lucide-react';
 import type { DataTable, EvidenceRef } from '../../shared/contracts';
 
@@ -16,11 +16,17 @@ export default function EvidenceTable({
   all?: boolean;
 }) {
   const [page, setPage] = useState(0);
-  const rows = all ? table.rows : table.rows.filter((row) => evidence?.rowIds.includes(row.id));
-  const columns =
-    all || !evidence?.columnIds.length
-      ? table.columns
-      : table.columns.filter((column) => evidence.columnIds.includes(column.id));
+  const rows = useMemo(() => {
+    const included = new Set(evidence?.rowIds);
+    return table.rows.flatMap((row, index) =>
+      all || included.has(row.id) ? [{ row, number: index + 1 }] : [],
+    );
+  }, [all, evidence?.rowIds, table.rows]);
+  const columns = useMemo(() => {
+    if (all || !evidence?.columnIds.length) return table.columns;
+    const included = new Set(evidence.columnIds);
+    return table.columns.filter((column) => included.has(column.id));
+  }, [all, evidence?.columnIds, table.columns]);
   const visibleColumns = columns.length ? columns : table.columns;
   const pageCount = Math.max(1, Math.ceil(rows.length / 8));
   const current = Math.min(page, pageCount - 1);
@@ -50,10 +56,10 @@ export default function EvidenceTable({
             </tr>
           </thead>
           <tbody>
-            {rows.slice(current * 8, current * 8 + 8).map((row) => (
+            {rows.slice(current * 8, current * 8 + 8).map(({ row, number }) => (
               <tr key={row.id} className={row.excluded ? 'excluded-row' : ''}>
                 <th scope="row">
-                  {table.rows.indexOf(row) + 1}
+                  {number}
                   {row.excluded ? <span className="sr-only"> excluded</span> : null}
                 </th>
                 {visibleColumns.map((column) => (

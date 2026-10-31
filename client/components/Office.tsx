@@ -1,12 +1,15 @@
-import { Component, useRef, type ReactNode } from 'react';
+import OfficeIllustration from './OfficeIllustration';
+import { Component, memo, useRef, type ReactNode } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import {
   BoxGeometry,
+  CircleGeometry,
   CylinderGeometry,
   MeshStandardMaterial,
   SphereGeometry,
+  TorusGeometry,
   Vector3,
   type Vector3Tuple,
 } from 'three';
@@ -16,6 +19,19 @@ gsap.registerPlugin(useGSAP);
 const cube = new BoxGeometry(1, 1, 1);
 const cylinder = new CylinderGeometry(1, 1, 1, 16);
 const sphere = new SphereGeometry(1, 12, 8);
+const ring = new TorusGeometry(1, 0.13, 6, 32);
+const lens = new CircleGeometry(1, 24);
+const lensMaterial = new MeshStandardMaterial({
+  color: '#D8E2D0',
+  transparent: true,
+  opacity: 0.22,
+  roughness: 0.16,
+});
+const lampMaterial = new MeshStandardMaterial({
+  color: '#E5BA72',
+  emissive: '#E5BA72',
+  emissiveIntensity: 0.9,
+});
 const palette = new Map<string, MeshStandardMaterial>();
 function material(color: string) {
   let value = palette.get(color);
@@ -49,52 +65,56 @@ const views: Record<Station, { position: Vector3Tuple; target: Vector3Tuple }> =
   archive: { position: [6.8, 4.3, 6.3], target: [1.2, 1.65, -1.3] },
 };
 
-function CameraRig({ station, reduced }: { station: Station; reduced: boolean }) {
+function CameraRig({
+  station,
+  reduced,
+  active,
+}: {
+  station: Station;
+  reduced: boolean;
+  active: boolean;
+}) {
   const { camera, invalidate } = useThree();
   const look = useRef(new Vector3(0, 1.3, -0.25));
+  const initialized = useRef(false);
   useGSAP(
     () => {
+      if (!active) return;
       const view = views[station];
-      const update = () => {
-        camera.lookAt(look.current);
-        invalidate();
-      };
-      if (reduced) {
+      if (reduced || !initialized.current) {
+        initialized.current = true;
         camera.position.set(...view.position);
         look.current.set(...view.target);
-        update();
+        camera.lookAt(look.current);
+        invalidate();
         return;
       }
-      const timeline = gsap.timeline({ paused: true, onUpdate: update });
-      timeline.to(
-        camera.position,
-        {
-          x: view.position[0],
-          y: view.position[1],
-          z: view.position[2],
-          duration: 0.8,
-          ease: 'power2.inOut',
+      const start = camera.position.clone();
+      const startLook = look.current.clone();
+      const destination = new Vector3(...view.position);
+      const destinationLook = new Vector3(...view.target);
+      const progress = { value: 0 };
+      // Tween a proxy rather than the camera: context cleanup then cannot snap
+      // a newly interrupted transition back to its previous starting position.
+      const timeline = gsap.timeline({ paused: true });
+      timeline.to(progress, {
+        value: 1,
+        duration: 0.8,
+        ease: 'power2.inOut',
+        onUpdate: () => {
+          camera.position.lerpVectors(start, destination, progress.value);
+          look.current.lerpVectors(startLook, destinationLook, progress.value);
+          camera.lookAt(look.current);
+          invalidate();
         },
-        0,
-      );
-      timeline.to(
-        look.current,
-        {
-          x: view.target[0],
-          y: view.target[1],
-          z: view.target[2],
-          duration: 0.8,
-          ease: 'power2.inOut',
-        },
-        0,
-      );
+      });
       invalidate();
       const frame = requestAnimationFrame(() => timeline.play());
       return () => {
         cancelAnimationFrame(frame);
       };
     },
-    { dependencies: [station, reduced, camera, invalidate], revertOnUpdate: true },
+    { dependencies: [station, reduced, active, camera, invalidate], revertOnUpdate: true },
   );
   return null;
 }
@@ -136,9 +156,17 @@ function Thread({ a, b }: { a: [number, number]; b: [number, number] }) {
 function Room({ onNavigate }: { onNavigate: (station: Station) => void }) {
   return (
     <group dispose={null}>
-      <ambientLight intensity={1.9} color="#FFF1D5" />
-      <directionalLight position={[-3, 8, 6]} intensity={3} color="#FFF3D4" />
-      <directionalLight position={[6, 5, -2]} intensity={1.1} color="#D5DEC9" />
+      <ambientLight intensity={0.55} color="#E5BA72" />
+      <hemisphereLight args={['#C7D1B7', '#172823', 1.1]} />
+      <directionalLight position={[-3, 8, 6]} intensity={2.1} color="#E5BA72" />
+      <directionalLight position={[6, 5, -2]} intensity={0.9} color="#8AAB9A" />
+      <pointLight
+        position={[-1.97, 2, 0.23]}
+        intensity={9}
+        distance={5.5}
+        decay={2}
+        color="#E5BA72"
+      />
       <Box p={[0, -0.16, 0]} s={[7.2, 0.3, 6.2]} color="#674A34" />
       {Array.from({ length: 12 }, (_, i) => (
         <Box
@@ -148,15 +176,15 @@ function Room({ onNavigate }: { onNavigate: (station: Station) => void }) {
           color={i % 3 === 0 ? '#B28B60' : i % 2 === 0 ? '#C49C6B' : '#BD9566'}
         />
       ))}
-      <Box p={[0, 1.9, -3]} s={[7.2, 3.9, 0.16]} color="#D1CAB0" />
-      <Box p={[-3.5, 1.9, 0]} s={[0.16, 3.9, 6]} color="#E2D8BF" />
+      <Box p={[0, 1.9, -3]} s={[7.2, 3.9, 0.16]} color="#233D34" />
+      <Box p={[-3.5, 1.9, 0]} s={[0.16, 3.9, 6]} color="#2D493D" />
       <Box p={[0, 0.18, -2.86]} s={[7, 0.25, 0.12]} color="#73573D" />
       <Box p={[-3.36, 0.18, 0]} s={[0.12, 0.25, 6]} color="#73573D" />
       {/* Window and its quiet afternoon light. */}
       <group position={[-3.37, 2.32, -0.7]} rotation={[0, Math.PI / 2, 0]}>
         <Box p={[0, 0, 0]} s={[2.1, 2.05, 0.12]} color="#70543A" />
-        <Box p={[0, 0, 0.08]} s={[1.85, 1.8, 0.08]} color="#B7CEBD" />
-        <Box p={[0, -0.42, 0.13]} s={[1.85, 0.9, 0.02]} color="#A5BBA0" />
+        <Box p={[0, 0, 0.08]} s={[1.85, 1.8, 0.08]} color="#36504A" />
+        <Box p={[0, -0.42, 0.13]} s={[1.85, 0.9, 0.02]} color="#172823" />
         <Box p={[0, 0, 0.17]} s={[0.08, 1.9, 0.08]} color="#F3EBDD" />
         <Box p={[0, 0, 0.17]} s={[1.9, 0.08, 0.08]} color="#F3EBDD" />
         <Box p={[0, -1.05, 0.14]} s={[2.3, 0.12, 0.35]} color="#E9DBC1" />
@@ -188,16 +216,30 @@ function Room({ onNavigate }: { onNavigate: (station: Station) => void }) {
           color="#B67A32"
         />
         <Box p={[-1.15, 1.41, 0.8]} s={[1.05, 0.03, 0.68]} color="#4E6444" />
-        <Box p={[-1.1, 1.44, 0.7]} s={[0.66, 0.015, 0.52]} r={[0, 0.1, 0]} color="#FFF6E4" />
+        <Box p={[-1.1, 1.44, 0.7]} s={[0.88, 0.015, 0.68]} r={[0, 0.1, 0]} color="#FFF9EE" />
+        <Box p={[-1.43, 1.455, 0.72]} s={[0.045, 0.014, 0.58]} r={[0, 0.1, 0]} color="#A44838" />
         <Box p={[-1.1, 1.46, 0.68]} s={[0.42, 0.01, 0.016]} r={[0, 0.1, 0]} color="#B2A58C" />
         <Box p={[-1.1, 1.46, 0.78]} s={[0.42, 0.01, 0.016]} r={[0, 0.1, 0]} color="#B2A58C" />
         <Box p={[-1.1, 1.46, 0.88]} s={[0.3, 0.01, 0.016]} r={[0, 0.1, 0]} color="#B2A58C" />
         <Round p={[-1.97, 1.45, 0.23]} s={[0.23, 0.09, 0.23]} color="#AF7B3C" />
         <Round p={[-1.97, 1.78, 0.23]} s={[0.035, 0.64, 0.035]} color="#A8783A" />
         <Round p={[-1.97, 2.1, 0.23]} s={[0.4, 0.2, 0.4]} color="#466441" />
+        <mesh
+          geometry={cylinder}
+          material={lampMaterial}
+          position={[-1.97, 1.995, 0.23]}
+          scale={[0.3, 0.023, 0.3]}
+        />
         <Round p={[-0.18, 1.54, 0.31]} s={[0.105, 0.27, 0.105]} color="#F2E9D4" />
         <Round p={[-0.18, 1.68, 0.31]} s={[0.083, 0.009, 0.083]} color="#58402A" />
         <Box p={[-0.1, 1.42, 1.02]} s={[0.5, 0.06, 0.36]} r={[0, -0.12, 0]} color="#A44838" />
+        <Round p={[-0.1, 1.56, 1.02]} s={[0.07, 0.18, 0.07]} color="#493527" />
+        <group position={[-1.17, 1.48, 0.82]} rotation={[-Math.PI / 2, 0, -0.5]}>
+          <mesh geometry={ring} material={material('#B67A32')} scale={0.22} />
+          <mesh geometry={lens} material={lensMaterial} scale={0.205} />
+          <Box p={[0, -0.4, 0]} s={[0.075, 0.42, 0.07]} color="#493527" />
+          <Box p={[0, -0.24, 0]} s={[0.09, 0.1, 0.075]} color="#B67A32" />
+        </group>
       </group>
       <Plant x={0.38} z={0.19} small />
       {/* Chair. */}
@@ -282,101 +324,42 @@ function Room({ onNavigate }: { onNavigate: (station: Station) => void }) {
   );
 }
 
-export function OfficeFallback() {
-  return (
-    <div className="flat-office" aria-hidden="true">
-      <svg viewBox="0 0 760 700" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <pattern id="boards" width="60" height="100" patternUnits="userSpaceOnUse">
-            <path d="M0 0h60v100H0Z" fill="#C6A67B" stroke="#AD8A60" strokeWidth="2" />
-          </pattern>
-          <pattern id="cork" width="12" height="12" patternUnits="userSpaceOnUse">
-            <path d="M0 0h12v12H0Z" fill="#AD8058" />
-            <circle cx="3" cy="5" r="1" fill="#9C704C" />
-          </pattern>
-        </defs>
-        <path d="M85 130 415 70 690 205v355L365 660 85 480Z" fill="#D5CDB5" />
-        <path d="m85 480 330-95 275 175-325 100Z" fill="url(#boards)" />
-        <path d="M415 70v315L85 480V130Z" fill="#E3D9C0" />
-        <path d="m415 70 275 135v355L415 385Z" fill="#CEC8AF" />
-        <path d="m131 188 152-30v185l-152 42Z" fill="#72573E" />
-        <path d="m142 197 131-26v163l-131 36Z" fill="#B7CEBD" />
-        <path d="m208 184 1 166m-65-80 130-31" stroke="#F4EBD5" strokeWidth="9" />
-        <path d="m448 165 177 85v141l-177-88Z" fill="#775235" />
-        <path d="m459 182 155 74v117l-155-76Z" fill="url(#cork)" />
-        <path
-          d="m474 210 44 21v38l-44-21Zm77 40 43 21v41l-43-21Zm-59 31 42 19v38l-42-20Z"
-          fill="#F4E8CC"
-        />
-        <path d="m493 217 79 51-57 19" fill="none" stroke="#A44838" strokeWidth="3" />
-        <path d="m560 390 102 52v123l-102-59Z" fill="#7A593C" />
-        <path d="m570 402 81 41m-81-1 81 43m-81-2 81 44" stroke="#B38A59" strokeWidth="10" />
-        <path
-          d="m582 413 1 25m17-17 1 25m18-15 1 25m-40 5 1 25m18-16 1 25m17-16 1 25"
-          stroke="#AABA8A"
-          strokeWidth="10"
-        />
-        <path d="m177 427 210-60 142 88-207 66Z" fill="#BA8E5B" stroke="#805A39" strokeWidth="8" />
-        <path d="M190 439v104m128-30v109m195-168v108" stroke="#805A39" strokeWidth="15" />
-        <path d="m282 430 91-26 55 35-92 28Z" fill="#4E6444" />
-        <path d="m305 429 51-15 35 23-50 16Z" fill="#FFF5DF" />
-        <path
-          d="M247 418v-69m-27 0h55l-10-20h-35Z"
-          fill="#4E6444"
-          stroke="#9D763E"
-          strokeWidth="7"
-        />
-        <ellipse cx="362" cy="565" rx="43" ry="20" fill="#896343" />
-        <path
-          d="M327 566v48m68-48v42m-67-48v-56q34-25 68 0v56"
-          fill="#A17B53"
-          stroke="#7D5839"
-          strokeWidth="8"
-        />
-        <path d="m132 438 32-8 19 55-35 11Z" fill="#AE7154" />
-        <path d="m154 439 2-82m0 39-26-16m26-4 26-21" stroke="#4E6444" strokeWidth="10" />
-        <ellipse cx="130" cy="377" rx="13" ry="24" fill="#6F8453" transform="rotate(-35 130 377)" />
-        <ellipse cx="181" cy="351" rx="14" ry="25" fill="#6F8453" transform="rotate(32 181 351)" />
-      </svg>
-    </div>
-  );
-}
-
 class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };
   }
   render() {
-    return this.state.failed ? <OfficeFallback /> : this.props.children;
+    return this.state.failed ? <OfficeIllustration /> : this.props.children;
   }
 }
 
-export default function Office({
+function Office({
   station,
   reduced,
-  flat,
+  active,
   onNavigate,
 }: {
   station: Station;
   reduced: boolean;
-  flat: boolean;
+  active: boolean;
   onNavigate: (station: Station) => void;
 }) {
-  if (flat) return <OfficeFallback />;
   return (
     <SceneBoundary>
       <Canvas
-        frameloop="demand"
+        frameloop={active ? 'demand' : 'never'}
         dpr={[1, 1.5]}
         camera={{ position: views.desk.position, fov: 37, near: 0.1, far: 60 }}
         gl={{ antialias: true, alpha: true, powerPreference: 'low-power' }}
-        fallback={<OfficeFallback />}
+        fallback={<OfficeIllustration />}
         aria-hidden="true"
       >
-        <CameraRig station={station} reduced={reduced} />
+        <CameraRig station={station} reduced={reduced} active={active} />
         <Room onNavigate={onNavigate} />
       </Canvas>
     </SceneBoundary>
   );
 }
+
+export default memo(Office);

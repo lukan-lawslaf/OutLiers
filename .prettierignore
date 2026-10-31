@@ -4,6 +4,7 @@ dist/
 .data/
 .vercel/
 .deploy/
+.tools/
 tmp/
 output/
 test-results/
@@ -13,3 +14,9 @@ pnpm-lock.yaml
 .env*
 *.pdf
 New Text Document.txt
+# Separate Storage Invaders prototype; preserve its source and formatting.
+client/src/
+docs/SPEC.md
+docs/DECISIONS.md
+tests/unit/storage_invaders_*.test.ts
+motion/intro/gsap.min.js

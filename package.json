@@ -69,6 +69,7 @@
     "concurrently": "^9.2.1",
     "eslint": "^9.38.0",
     "globals": "^16.4.0",
+    "hyperframes": "0.8.223",
     "prettier": "^3.6.2",
     "supertest": "^7.1.4",
     "tsx": "^4.20.6",
