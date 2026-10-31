@@ -7,7 +7,7 @@ Build a cozy detective game that turns user-confirmed investigations into real d
 ## Stack and boundaries
 
 - React 19, TypeScript, Vite, Three.js through React Three Fiber 9, GSAP and @gsap/react.
-- Node 24, Express, Firestore, Firebase anonymous authentication, Google GenAI with Zod validation, ExcelJS and csv-parse/stringify.
+- Node 24, Express, PostgreSQL or Firestore, signed sessions or Firebase anonymous authentication, Google GenAI with Zod validation, ExcelJS and csv-parse/stringify. The hosted Vercel/Render configuration is documented in `docs/data-detective.md`.
 - HyperFrames authors the skippable opening. Video rendering is separate from normal app builds. Remotion personalized debriefs are deferred.
 - CSV/XLSX only; two selected tables total, at most 500 data rows and 20 columns each, 2 MB per uploaded file. Reject over-limit input explicitly; preserve source values.
 - Client presentation is separate from the server's authoritative investigation state. Shared API types live in `shared/`.
@@ -23,6 +23,8 @@ Build a cozy detective game that turns user-confirmed investigations into real d
 
 Only the main reviewer edits root configs, package manifests, lockfiles or shared contracts and creates commits, branches or pushes. Ask the parent for a contract/dependency change; do not independently change another agent's files. Agents share a checkout. Preserve other agents' edits and existing user PDFs and notes.
 
+The separate Storage Invaders prototype in `client/src/`, its tests, and `docs/SPEC.md` and `docs/DECISIONS.md` is not part of this implementation; preserve it.
+
 ## Commands
 
 Run from repository root using pnpm. After bootstrapping, the following scripts must exist and remain accurate:
@@ -30,6 +32,7 @@ Run from repository root using pnpm. After bootstrapping, the following scripts 
 ```text
 pnpm install --frozen-lockfile
 pnpm dev
+pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm test:unit
@@ -37,13 +40,15 @@ pnpm test:integration
 pnpm test:e2e
 pnpm test:a11y
 pnpm build
+pnpm perf:bundle
+pnpm perf:data
 pnpm check
 pnpm motion:check
 pnpm motion:render
 pnpm deploy:cloudrun
 ```
 
-`check` runs lint, typecheck, unit tests, integration tests and production build. Browser checks cover the integrated app. Follow README setup for Firebase emulators or Google credentials. Use the bundled runtime executable if a system command is unavailable; do not overwrite global user settings.
+`check` runs formatting, lint, typecheck, unit and integration tests, the production build and the initial bundle budget. Browser checks cover the integrated app. Use the bundled runtime executable if a system command is unavailable; do not overwrite global user settings.
 
 ## Data integrity and security
 

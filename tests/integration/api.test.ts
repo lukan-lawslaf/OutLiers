@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
+import ExcelJS from 'exceljs';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import type { Request } from 'express';
 import { parse as parseCsv } from 'csv-parse/sync';
 import type {
@@ -33,6 +37,17 @@ class FailAfterUpdateStore extends MemoryStore {
 type TestApp = Awaited<ReturnType<typeof createApp>>;
 
 const userHeader = 'x-test-user';
+const temporaryDirectories: string[] = [];
+
+function sessionCookie(response: request.Response): string | undefined {
+  const setCookie = response.headers['set-cookie'];
+  const value = Array.isArray(setCookie)
+    ? setCookie.find((cookie) => cookie.startsWith('dd_session='))
+    : setCookie?.startsWith('dd_session=')
+      ? setCookie
+      : undefined;
+  return value?.split(';')[0];
+}
 
 function expectSuccess(status: number) {
   expect(status, `expected 2xx response, got ${status}`).toBeGreaterThanOrEqual(200);
@@ -93,8 +108,13 @@ describe('investigation API integrity', () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.unstubAllEnvs();
+    await Promise.all(
+      temporaryDirectories
+        .splice(0)
+        .map((directory) => rm(directory, { recursive: true, force: true })),
+    );
   });
 
   it('keeps preview read-only, requires its exact effect hash, and applies a retry once', async () => {
@@ -125,29 +145,30 @@ describe('investigation API integrity', () => {
       effectHash: preview.effectHash,
       caseId: repairCase.id,
     };
-    const resolvedResponse = await request(app)
-      .post(`/api/investigations/${initial.id}/resolve`)
-      .set(userHeader, 'alice')
-      .send(resolveBody);
+    const [resolvedResponse, parallelRetryResponse] = await Promise.all([
+      request(app)
+        .post(`/api/investigations/${initial.id}/resolve`)
+        .set(userHeader, 'alice')
+        .send(resolveBody),
+      request(app)
+        .post(`/api/investigations/${initial.id}/resolve`)
+        .set(userHeader, 'alice')
+        .send(resolveBody),
+    ]);
     expectSuccess(resolvedResponse.status);
+    expectSuccess(parallelRetryResponse.status);
     const resolved = resolvedResponse.body as ResolveResponse;
     expect(resolved.actionId).toBe(resolveBody.actionId);
     expect(resolved.investigation.revision).toBe(initial.revision + 1);
+    const parallelRetry = parallelRetryResponse.body as ResolveResponse;
+    expect(parallelRetry.investigation.revision).toBe(resolved.investigation.revision);
+    expect(parallelRetry.investigation.history).toHaveLength(resolved.investigation.history.length);
 
     for (const change of preview.changes) {
       const originalRow = rowForChange(initial, change);
       const committedRow = rowForChange(resolved.investigation, change);
       expect(committedRow.original).toEqual(originalRow.original);
     }
-
-    const retryResponse = await request(app)
-      .post(`/api/investigations/${initial.id}/resolve`)
-      .set(userHeader, 'alice')
-      .send(resolveBody);
-    expectSuccess(retryResponse.status);
-    const retried = retryResponse.body as ResolveResponse;
-    expect(retried.investigation.revision).toBe(resolved.investigation.revision);
-    expect(retried.investigation.history).toHaveLength(resolved.investigation.history.length);
 
     const conflictingRetry = await request(app)
       .post(`/api/investigations/${initial.id}/resolve`)
@@ -272,10 +293,48 @@ describe('investigation API integrity', () => {
         expect(restoredRow.values[change.columnId]).toBe(change.before);
       }
     }
+
+    const workbookResponse = await request(app)
+      .get(`/api/investigations/${initial.id}/export`)
+      .query({ format: 'xlsx' })
+      .set(userHeader, 'alice')
+      .parse((response, callback) => {
+        const chunks: Buffer[] = [];
+        response.on('data', (chunk: Buffer) => chunks.push(chunk));
+        response.on('end', () => callback(null, Buffer.concat(chunks)));
+      });
+    expectSuccess(workbookResponse.status);
+    expect(workbookResponse.headers['content-disposition']).toContain('maplewick-casefile.xlsx');
+    const workbook = new ExcelJS.Workbook();
+    const workbookBytes = new Uint8Array(workbookResponse.body as Uint8Array);
+    const workbookBuffer = new ArrayBuffer(workbookBytes.byteLength);
+    new Uint8Array(workbookBuffer).set(workbookBytes);
+    await workbook.xlsx.load(workbookBuffer);
+    const history = workbook.getWorksheet('Change log');
+    expect(history?.getRow(1).values).toEqual([
+      undefined,
+      'Action ID',
+      'Label',
+      'Revision',
+      'Kind',
+      'Undone',
+      'Part',
+      'Changes JSON',
+    ]);
+    expect(history?.getRow(2).getCell(1).value).toBe(actionId);
+    expect(history?.getRow(2).getCell(5).value).toBe(true);
+    expect(history?.getRow(3).getCell(4).value).toBe('undo');
   });
 
   it('does not expose a user investigation to a different authenticated user', async () => {
     const { importId, investigation } = await makeInvestigation(app, 'owner');
+    const repairCase = actionableCase(investigation);
+    const ownerPreviewResponse = await request(app)
+      .post(`/api/investigations/${investigation.id}/preview`)
+      .set(userHeader, 'owner')
+      .send({ expectedRevision: investigation.revision, action: repairCase.action });
+    expectSuccess(ownerPreviewResponse.status);
+    const ownerPreview = ownerPreviewResponse.body as PreviewResponse;
 
     const readResponse = await request(app)
       .get(`/api/investigations/${investigation.id}`)
@@ -290,6 +349,24 @@ describe('investigation API integrity', () => {
         action: actionableCase(investigation).action,
       });
     expectClientError(previewResponse.status);
+
+    const resolveResponse = await request(app)
+      .post(`/api/investigations/${investigation.id}/resolve`)
+      .set(userHeader, 'other-user')
+      .send({
+        expectedRevision: investigation.revision,
+        action: ownerPreview.action,
+        actionId: 'foreign-user-action',
+        effectHash: ownerPreview.effectHash,
+        caseId: repairCase.id,
+      });
+    expectClientError(resolveResponse.status);
+
+    const exportResponse = await request(app)
+      .get(`/api/investigations/${investigation.id}/export`)
+      .query({ format: 'report' })
+      .set(userHeader, 'other-user');
+    expectClientError(exportResponse.status);
 
     const createFromForeignImport = await request(app)
       .post('/api/investigations')
@@ -470,6 +547,115 @@ describe('investigation API integrity', () => {
     expectClientError(createResponse.status);
   });
 
+  it('imports linked XLSX sheets and repairs confirmed alias and parent-reference cases', async () => {
+    const workbook = new ExcelJS.Workbook();
+    const customers = workbook.addWorksheet('Customers');
+    customers.addRows([
+      ['customer_id', 'customer_name'],
+      ['C01', 'Hazel Finch'],
+      ['C02', 'Milo Moss'],
+      ['C03', 'Milo_Moss'],
+      ['C04', 'Nora Pine'],
+    ]);
+    const orders = workbook.addWorksheet('Orders');
+    orders.addRows([
+      ['order_id', 'customer_id', 'total'],
+      ['O01', 'C01', 24],
+      ['O02', 'c02', 18],
+      ['O03', 'C99', 12],
+    ]);
+    const contents = Buffer.from(await workbook.xlsx.writeBuffer());
+    const uploadResponse = await request(app)
+      .post('/api/imports')
+      .set(userHeader, 'alice')
+      .attach('files', contents, {
+        filename: 'market.xlsx',
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+    expectSuccess(uploadResponse.status);
+    const imported = uploadResponse.body as ImportResult;
+    expect(imported.tables.map((table) => table.name)).toEqual(['Customers', 'Orders']);
+    expect(imported.tables[0]?.rows[1]?.original).toEqual({ col_0: 'C02', col_1: 'Milo Moss' });
+
+    const customerTable = imported.tables[0]!;
+    const orderTable = imported.tables[1]!;
+    const createResponse = await request(app)
+      .post('/api/investigations')
+      .set(userHeader, 'alice')
+      .send({
+        importId: imported.id,
+        tableIds: [customerTable.id, orderTable.id],
+        identity: { tableId: customerTable.id, columnId: 'col_1' },
+        join: {
+          parentTableId: customerTable.id,
+          parentColumnId: 'col_0',
+          childTableId: orderTable.id,
+          childColumnId: 'col_1',
+        },
+      });
+    expectSuccess(createResponse.status);
+    let investigation = createResponse.body as Investigation;
+
+    const linkCase = investigation.cases.find(
+      (item) =>
+        item.kind === 'relationship' &&
+        item.action?.type === 'repairLinks' &&
+        item.action.value === 'C02',
+    );
+    expect(linkCase).toBeDefined();
+    const linkPreviewResponse = await request(app)
+      .post(`/api/investigations/${investigation.id}/preview`)
+      .set(userHeader, 'alice')
+      .send({ expectedRevision: investigation.revision, action: linkCase!.action });
+    expectSuccess(linkPreviewResponse.status);
+    const linkPreview = linkPreviewResponse.body as PreviewResponse;
+    const linkResolve = await request(app)
+      .post(`/api/investigations/${investigation.id}/resolve`)
+      .set(userHeader, 'alice')
+      .send({
+        expectedRevision: investigation.revision,
+        action: linkPreview.action,
+        actionId: 'xlsx-link-repair',
+        effectHash: linkPreview.effectHash,
+        caseId: linkCase!.id,
+      });
+    expectSuccess(linkResolve.status);
+    investigation = (linkResolve.body as ResolveResponse).investigation;
+    const repairedOrder = investigation.tables
+      .find((table) => table.id === orderTable.id)!
+      .rows.find((row) => row.id === 'row_2')!;
+    expect(repairedOrder.values.col_1).toBe('C02');
+    expect(repairedOrder.original.col_1).toBe('c02');
+
+    const aliasCase = investigation.cases.find(
+      (item) => item.kind === 'alias' && item.action?.type === 'canonicalizeAliases',
+    );
+    expect(aliasCase).toBeDefined();
+    const aliasPreviewResponse = await request(app)
+      .post(`/api/investigations/${investigation.id}/preview`)
+      .set(userHeader, 'alice')
+      .send({ expectedRevision: investigation.revision, action: aliasCase!.action });
+    expectSuccess(aliasPreviewResponse.status);
+    const aliasPreview = aliasPreviewResponse.body as PreviewResponse;
+    const aliasResolve = await request(app)
+      .post(`/api/investigations/${investigation.id}/resolve`)
+      .set(userHeader, 'alice')
+      .send({
+        expectedRevision: investigation.revision,
+        action: aliasPreview.action,
+        actionId: 'xlsx-alias-repair',
+        effectHash: aliasPreview.effectHash,
+        caseId: aliasCase!.id,
+      });
+    expectSuccess(aliasResolve.status);
+    investigation = (aliasResolve.body as ResolveResponse).investigation;
+    const aliasRow = investigation.tables
+      .find((table) => table.id === customerTable.id)!
+      .rows.find((row) => row.id === 'row_3')!;
+    expect(aliasRow.values.col_1).toBe('Milo Moss');
+    expect(aliasRow.original.col_1).toBe('Milo_Moss');
+  });
+
   it('exports only active committed rows and escapes spreadsheet formula prefixes in CSV', async () => {
     const uploadResponse = await request(app)
       .post('/api/imports')
@@ -557,5 +743,63 @@ describe('investigation API integrity', () => {
     expect(cookie).toMatch(/; SameSite=Strict/i);
     expect(cookie).toMatch(/; Path=\//i);
     expect(cookie).toMatch(/; Max-Age=2592000/i);
+  });
+
+  it('treats a Unicode session signature as invalid input instead of throwing on unequal byte lengths', async () => {
+    vi.stubEnv('AUTH_MODE', 'session');
+    vi.stubEnv('PERSISTENCE_MODE', 'file');
+    vi.stubEnv('SESSION_SECRET', 'testing-session-secret-with-more-than-32-characters');
+    vi.stubEnv('NODE_ENV', 'test');
+    vi.stubEnv('K_SERVICE', '');
+    vi.stubEnv('RENDER', '');
+    const sessionApp = await createApp({
+      store: new MemoryStore(),
+      gemini: null,
+      serveClient: false,
+    });
+    const malformedCookie = `dd_session=${'a'.repeat(64)}.${'é'.repeat(64)}`;
+
+    const response = await request(sessionApp)
+      .post('/api/demo')
+      .set('Cookie', malformedCookie)
+      .send({ name: 'club' });
+    expectSuccess(response.status);
+    expect(sessionCookie(response)).toMatch(/^dd_session=[a-f0-9]{64}\.[a-f0-9]{64}$/);
+  });
+
+  it('restores a file-backed investigation after a server restart using its local session cookie', async () => {
+    vi.stubEnv('AUTH_MODE', 'local');
+    vi.stubEnv('PERSISTENCE_MODE', 'file');
+    vi.stubEnv('PERSISTENCE', 'file');
+    vi.stubEnv('K_SERVICE', '');
+    vi.stubEnv('RENDER', '');
+    vi.stubEnv('NODE_ENV', 'test');
+    const dataDirectory = await mkdtemp(path.join(tmpdir(), 'maplewick-restart-test-'));
+    temporaryDirectories.push(dataDirectory);
+    const firstApp = await createApp({ dataDir: dataDirectory, gemini: null, serveClient: false });
+
+    const demoResponse = await request(firstApp).post('/api/demo').send({ name: 'market' });
+    expectSuccess(demoResponse.status);
+    const imported = demoResponse.body as ImportResult;
+    const cookie = sessionCookie(demoResponse);
+    expect(cookie).toMatch(/^dd_session=/);
+
+    const createResponse = await request(firstApp)
+      .post('/api/investigations')
+      .set('Cookie', cookie!)
+      .send({
+        importId: imported.id,
+        tableIds: imported.tables.map((table) => table.id),
+        title: 'Persistent case',
+      });
+    expectSuccess(createResponse.status);
+    const saved = createResponse.body as Investigation;
+
+    const secondApp = await createApp({ dataDir: dataDirectory, gemini: null, serveClient: false });
+    const restored = await request(secondApp)
+      .get(`/api/investigations/${saved.id}`)
+      .set('Cookie', cookie!);
+    expectSuccess(restored.status);
+    expect(restored.body).toEqual(saved);
   });
 });

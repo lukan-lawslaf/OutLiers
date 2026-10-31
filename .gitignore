@@ -15,9 +15,11 @@ coverage/
 .DS_Store
 .vercel/
 .deploy/
+.tools/
 motion/**/node_modules/
 motion/**/.hyperframes/
 motion/**/renders/
+motion/**/debug.log
 
 .vercel
 .env*

@@ -1,7 +1,35 @@
-import ExcelJS from 'exceljs';
 import { stringify } from 'csv-stringify/sync';
 import type { Cell, Investigation } from '../shared/contracts.js';
 import { active, tableOf } from './engine.js';
+
+function sheetName(input: string, used: Set<string>): string {
+  const base =
+    input
+      .replace(/[\\/*?:[\]]/g, ' ')
+      .replace(/^'+|'+$/g, '')
+      .trim()
+      .slice(0, 31) || 'Table';
+  let result = base;
+  for (let suffix = 2; used.has(result.toLowerCase()); suffix++) {
+    const ending = ` (${suffix})`;
+    result = `${base.slice(0, 31 - ending.length)}${ending}`;
+  }
+  used.add(result.toLowerCase());
+  return result;
+}
+
+function cellTextParts(value: string): string[] {
+  const parts: string[] = [];
+  let start = 0;
+  while (start < value.length) {
+    let end = Math.min(start + 30_000, value.length);
+    const last = value.charCodeAt(end - 1);
+    if (end < value.length && last >= 0xd800 && last <= 0xdbff) end--;
+    parts.push(value.slice(start, end));
+    start = end;
+  }
+  return parts.length ? parts : [''];
+}
 export function safeCell(value: Cell): Cell {
   return typeof value === 'string' &&
     /^[\s]*[=+@-]/u.test(value.replaceAll(String.fromCharCode(0), ''))
@@ -21,18 +49,13 @@ export function exportCsv(inv: Investigation, tableId: string): string {
   );
 }
 export async function exportXlsx(inv: Investigation): Promise<Buffer> {
+  const { default: ExcelJS } = await import('exceljs');
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Data Detective';
-  const used = new Set(['Findings', 'History']);
-  for (const [index, table] of inv.tables.entries()) {
-    let name =
-      table.name
-        .replace(/[\\/*?:[\]]/g, ' ')
-        .slice(0, 27)
-        .trim() || `Table ${index + 1}`;
-    if (used.has(name)) name = `${name.slice(0, 25)} ${index + 1}`;
-    used.add(name);
-    const sheet = workbook.addWorksheet(name);
+  // History is reserved by Excel; names are also unique without regard to case.
+  const used = new Set(['findings', 'history', 'change log']);
+  for (const table of inv.tables) {
+    const sheet = workbook.addWorksheet(sheetName(table.name, used));
     sheet.addRow(table.columns.map((column) => safeCell(column.name)));
     for (const row of active(table))
       sheet.addRow(table.columns.map((column) => safeCell(row.values[column.id] ?? null)));
@@ -42,24 +65,32 @@ export async function exportXlsx(inv: Investigation): Promise<Buffer> {
     });
   }
   const findings = workbook.addWorksheet('Findings');
-  findings.addRow(['Title', 'Description', 'Evidence', 'Saved at']);
-  for (const finding of inv.findings)
-    findings.addRow([
-      safeCell(finding.title),
-      safeCell(finding.description),
-      safeCell(JSON.stringify(finding.evidence)),
-      finding.createdAt,
-    ]);
-  const history = workbook.addWorksheet('History');
-  history.addRow(['Action ID', 'Label', 'Revision', 'Kind', 'Undone', 'Changes']);
-  for (const entry of inv.history)
-    history.addRow([
-      entry.id,
-      safeCell(entry.label),
-      entry.revision,
-      entry.kind,
-      entry.undone,
-      safeCell(JSON.stringify(entry.changes)),
-    ]);
+  findings.addRow(['Title', 'Description', 'Part', 'Evidence JSON', 'Saved at']);
+  for (const finding of inv.findings) {
+    const parts = cellTextParts(JSON.stringify(finding.evidence));
+    for (const [index, part] of parts.entries())
+      findings.addRow([
+        safeCell(finding.title),
+        safeCell(finding.description),
+        `${index + 1}/${parts.length}`,
+        safeCell(part),
+        finding.createdAt,
+      ]);
+  }
+  const history = workbook.addWorksheet('Change log');
+  history.addRow(['Action ID', 'Label', 'Revision', 'Kind', 'Undone', 'Part', 'Changes JSON']);
+  for (const entry of inv.history) {
+    const parts = cellTextParts(JSON.stringify(entry.changes));
+    for (const [index, part] of parts.entries())
+      history.addRow([
+        safeCell(entry.id),
+        safeCell(entry.label),
+        entry.revision,
+        entry.kind,
+        entry.undone,
+        `${index + 1}/${parts.length}`,
+        safeCell(part),
+      ]);
+  }
   return Buffer.from(await workbook.xlsx.writeBuffer());
 }

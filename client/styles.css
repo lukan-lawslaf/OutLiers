@@ -502,7 +502,7 @@ tbody tr:nth-child(even) {
   font-size: 8px;
   border-left: 1px solid #d0bea0;
   padding-left: 9px;
-  color: #7c7058;
+  color: #625749;
   white-space: nowrap;
 }
 .paper {
@@ -1597,7 +1597,7 @@ tbody tr:nth-child(even) {
   gap: 11px;
   position: relative;
   background: transparent;
-  color: #93856b;
+  color: #625749;
   padding: 11px 18px;
   text-align: left;
   border-radius: 4px;
@@ -1629,12 +1629,12 @@ tbody tr:nth-child(even) {
 }
 .station-nav small {
   font-size: 7px;
-  color: #8e8166;
+  color: #625749;
 }
 .station-nav kbd {
   font-size: 7px;
   font-family: inherit;
-  color: #a4967a;
+  color: #625749;
   border: 1px solid #d5c9af;
   border-radius: 3px;
   position: absolute;
@@ -1649,7 +1649,7 @@ tbody tr:nth-child(even) {
   bottom: 7px;
   font-size: 6px;
   color: #fff9ee;
-  background: #7d8c66;
+  background: #4e6444;
   display: grid;
   place-items: center;
   min-width: 13px;
@@ -1748,7 +1748,7 @@ tbody tr:nth-child(even) {
   border: 1px solid #cdd5b9;
   border-radius: 3px;
   font-size: 10px;
-  color: #677a52;
+  color: #4e6444;
   padding: 12px 14px;
   margin: 21px 0;
 }

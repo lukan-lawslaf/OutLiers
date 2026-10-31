@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { inflateRawSync } from 'node:zlib';
 import { parse } from 'csv-parse/sync';
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
 import { LIMITS, type Cell, type Column, type DataTable } from '../shared/contracts.js';
 import { insist, AppError } from './errors.js';
 
@@ -231,6 +231,7 @@ export async function parseUploads(
       tables.push(makeTable(path.basename(file.originalname, extension), matrix, false));
     } else if (extension === '.xlsx') {
       validateZip(file.buffer);
+      const { default: ExcelJS } = await import('exceljs');
       const workbook = new ExcelJS.Workbook();
       try {
         await workbook.xlsx.load(

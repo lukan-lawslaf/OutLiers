@@ -26,7 +26,13 @@ Measured from the original production artifacts with Node 24.18.0 and gzip:
 | Read 200 investigations             |         7.64 ms |
 | Edit 200 independent investigations |      1,068.8 ms |
 
-The original memory store cloned all investigations for each mutation. Independent edits therefore scaled with unrelated stored data. The optimized store should clone only its target resource and retain atomic mutation behavior. Regression tests cover isolation, source immutability, failed persistence and same-resource serialization.
+The original memory store cloned all investigations for each mutation. Independent edits therefore scaled with unrelated stored data. The optimized store clones only its target resource and retains atomic mutation behavior. Regression tests cover isolation, source immutability, failed persistence and same-resource serialization.
+
+## Integrated measurements
+
+On the same machine and fixture, a later run measured 0.66 ms for duplicate grouping, 2.39 ms for case detection, 7.02 ms to create 200 investigations, and 11.83 ms to edit 200 independent investigations. These are informal local measurements, not performance guarantees.
+
+The integrated client build measured 88,189 gzip bytes of initial JavaScript, below the 92,160-byte budget. The office remains a separate 268,520-byte gzip chunk loaded later; its size is still a worthwhile target for future optimization.
 
 ## Verification commands
 
@@ -37,4 +43,4 @@ pnpm test:e2e
 pnpm test:a11y
 ```
 
-The same fixtures, runtime and build settings must be used for before/after comparisons. Record final measured results here after integration.
+The same fixtures, runtime and build settings must be used for before/after comparisons.

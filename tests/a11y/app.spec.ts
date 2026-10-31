@@ -27,11 +27,11 @@ test('keeps the desk, evidence board, and change preview usable by keyboard and 
   await expectNoSevereViolations(page);
 
   await page.keyboard.press('2');
-  await expect(page.getByRole('button', { name: 'Evidence board' })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: /^Evidence board\b/ })).toHaveAttribute(
     'aria-current',
     'page',
   );
-  await page.getByRole('button', { name: 'Desk' }).click();
+  await page.getByRole('button', { name: /^Desk\b/ }).click();
   await page.getByRole('button', { name: 'Open Maplewick Market' }).click();
   await page.getByRole('button', { name: 'Begin investigation' }).click();
   await expect(page.getByRole('heading', { name: 'Follow the loose threads.' })).toBeVisible();

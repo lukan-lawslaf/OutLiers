@@ -2,7 +2,15 @@
 
 > **Challenge:** "We all procrastinate on painful digital chores - cleaning out 5,000 unread emails, sorting messy folders, reviewing expenses, or fixing lint errors. Build an experience where playing a fast-paced game or interactive story actually executes the real-world chore in the background."
 
-## Live Deployment Links (Updated)
+## Data Detective
+
+- **Live application:** [data-detective-outliers.vercel.app](https://data-detective-outliers.vercel.app)
+- **Repository:** [github.com/lukan-lawslaf/OutLiers](https://github.com/lukan-lawslaf/OutLiers)
+- **Product and setup:** [Data Detective documentation](docs/data-detective.md)
+
+The following earlier submission notes describe the separate Storage Invaders prototype. The listed v2 links are historical and were not working when checked on October 31, 2026.
+
+## Earlier Submission Links (Unverified)
 
 - **Primary Live Application:** [https://data-detective-v2-outliers.vercel.app](https://data-detective-v2-outliers.vercel.app)
 - **Alternative / Mirror Deployment:** [https://storage-invaders-v2.vercel.app](https://storage-invaders-v2.vercel.app)

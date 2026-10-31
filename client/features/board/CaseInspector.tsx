@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ArrowRight,
   CheckCheck,
@@ -17,6 +17,7 @@ import {
 } from '../../../shared/contracts';
 import Evidence from '../../components/Evidence';
 import { cellText } from '../../components/EvidenceTable';
+import { unambiguousParentValues } from '../../domain/records';
 
 const kindInfo = {
   duplicate: { label: 'Repeated records', icon: Fingerprint },
@@ -48,21 +49,16 @@ export default function CaseInspector({
     (table) => table.id === investigation.join?.parentTableId,
   );
   const key = investigation.join?.parentColumnId;
-  const linkTargets =
-    parent && key
-      ? [
-          ...new Map(
-            parent.rows
-              .filter((row) => !row.excluded && row.values[key] !== null && row.values[key] !== '')
-              .map((row) => [JSON.stringify(row.values[key]), row.values[key]]),
-          ).values(),
-        ]
-      : [];
+  const linkTargets = useMemo(() => unambiguousParentValues(parent, key), [parent, key]);
+  const currentLink = linkValue ?? (action && 'value' in action ? action.value : undefined);
+  const selectedLink = linkTargets.some((target) => target === currentLink)
+    ? currentLink
+    : linkTargets[0];
   const chosenAction =
     action?.type === 'canonicalizeAliases'
       ? { ...action, value: value.trim() }
       : action?.type === 'repairLinks'
-        ? { ...action, value: linkValue ?? action.value }
+        ? { ...action, value: selectedLink ?? action.value }
         : action;
   const Icon = kindInfo[file.kind].icon;
   return (
@@ -122,9 +118,12 @@ export default function CaseInspector({
             <label className="field-label action-choice">
               Connect to existing parent
               <select
-                value={JSON.stringify(linkValue ?? action.value)}
+                value={selectedLink === undefined ? '' : JSON.stringify(selectedLink)}
                 onChange={(event) => setLinkValue(JSON.parse(event.target.value) as Cell)}
               >
+                {!linkTargets.length ? (
+                  <option value="">No unambiguous parent key is available</option>
+                ) : null}
                 {linkTargets.map((target) => (
                   <option key={JSON.stringify(target)} value={JSON.stringify(target)}>
                     {cellText(target)}
@@ -139,7 +138,8 @@ export default function CaseInspector({
               disabled={
                 busy ||
                 !chosenAction ||
-                (chosenAction.type === 'canonicalizeAliases' && !chosenAction.value)
+                (chosenAction.type === 'canonicalizeAliases' && !chosenAction.value) ||
+                (chosenAction.type === 'repairLinks' && selectedLink === undefined)
               }
               onClick={() => chosenAction && onPreview(chosenAction, file.id)}
             >

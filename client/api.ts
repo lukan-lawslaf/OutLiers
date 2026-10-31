@@ -28,6 +28,9 @@ export class RequestError extends Error {
 let configPromise: Promise<AppConfig> | undefined;
 let token: (() => Promise<string | undefined>) | undefined;
 
+const WAKE_UP_BUDGET_MS = 65_000;
+const CONFIG_RETRY_DELAYS = [1000, 2000, 4000, 8000, 10_000, 12_000, 15_000];
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
   if (init.body && !(init.body instanceof FormData))
@@ -57,7 +60,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export function connect(): Promise<AppConfig> {
-  configPromise ??= request<AppConfig>('/config')
+  configPromise ??= loadConfig()
     .then(async (config) => {
       if (config.authMode === 'firebase') {
         if (!config.firebaseConfig)
@@ -74,6 +77,36 @@ export function connect(): Promise<AppConfig> {
       throw error;
     });
   return configPromise;
+}
+
+/** Only the safe configuration GET retries while a free backend wakes up. */
+async function loadConfig(): Promise<AppConfig> {
+  const deadline = Date.now() + WAKE_UP_BUDGET_MS;
+  let attempt = 0;
+  let lastError: unknown;
+  while (Date.now() < deadline) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(
+      () => controller.abort(),
+      Math.min(10_000, deadline - Date.now()),
+    );
+    try {
+      return await request<AppConfig>('/config', { signal: controller.signal });
+    } catch (error) {
+      lastError = error;
+      const transient =
+        error instanceof RequestError &&
+        (error.code === 'NETWORK_ERROR' || [502, 503, 504].includes(error.status));
+      if (!transient) throw error;
+    } finally {
+      window.clearTimeout(timeout);
+    }
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
+    const delay = CONFIG_RETRY_DELAYS[Math.min(attempt++, CONFIG_RETRY_DELAYS.length - 1)]!;
+    await new Promise<void>((resolve) => window.setTimeout(resolve, Math.min(delay, remaining)));
+  }
+  throw lastError;
 }
 
 const post = <T>(path: string, body: unknown) =>

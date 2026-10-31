@@ -7,11 +7,11 @@ if (!['check', 'render'].includes(mode)) throw new Error('Use motion.mjs check|r
 const directory = resolve('motion/intro');
 if (!existsSync(resolve(directory, 'index.html')))
   throw new Error('Opening source missing: motion/intro/index.html');
-const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+const cli = resolve('node_modules/hyperframes/bin/hyperframes.mjs');
 const run = (args) => {
-  const result = spawnSync(pnpm, ['--dir', directory, 'exec', 'hyperframes', ...args], {
+  const result = spawnSync(process.execPath, [cli, ...args], {
+    cwd: directory,
     stdio: 'inherit',
-    shell: process.platform === 'win32',
   });
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status || 1);

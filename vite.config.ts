@@ -5,6 +5,16 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    watch: {
+      ignored: [
+        '**/.tools/**',
+        '**/.data/**',
+        '**/output/**',
+        '**/tmp/**',
+        '**/test-results/**',
+        '**/.vercel/**',
+      ],
+    },
     proxy: { '/api': { target: 'http://127.0.0.1:3001', changeOrigin: false } },
   },
   build: { outDir: 'dist/client', manifest: true, chunkSizeWarningLimit: 750 },

@@ -1,4 +1,4 @@
-import { GoogleGenAI } from '@google/genai';
+import type { GoogleGenAI } from '@google/genai';
 import { z } from 'zod';
 import type { Investigation, QueryOperation } from '../shared/contracts.js';
 const planSchema = z
@@ -15,8 +15,11 @@ export interface QueryPlan {
 }
 export type GeminiPlanner = (investigation: Investigation, prompt: string) => Promise<QueryPlan>;
 export function makeGeminiPlanner(apiKey: string): GeminiPlanner {
-  const ai = new GoogleGenAI({ apiKey });
+  let client: Promise<GoogleGenAI> | undefined;
   return async (investigation, prompt) => {
+    const ai = await (client ??= import('@google/genai').then(
+      ({ GoogleGenAI }) => new GoogleGenAI({ apiKey }),
+    ));
     const response = await ai.models.generateContent({
       model: process.env['GEMINI_MODEL'] ?? 'gemini-3.5-flash-lite',
       contents: JSON.stringify({
